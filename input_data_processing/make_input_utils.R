@@ -53,7 +53,7 @@ MakeInput <- R6Class("MakeInput",
             df_scaled <- t(apply(as.data.frame(list_pseudobulk), 1, scale))
             colnames(df_scaled) <- names(list_pseudobulk)
 
-            self$df_expr <- df_scaled[!apply(df_scaled == 0, 1, all), ]
+            self$df_expr <- df_scaled[apply(is.na(df_scaled), 1, sum)==0, ]
         },
         read_tfs = function() {
             input_tfs <- file.path(self$path_tf_and_reqdgenes, "tfs_anonymized.txt")
@@ -82,18 +82,15 @@ MakeInput <- R6Class("MakeInput",
                 # write all possible edges from TFs to target
                 index_all_tfs <- match(selected_tfs, rownames(df_embeddings)) - 1
                 index_all_genes <- seq_len(nrow(self$df_expr)) - 1
-                all_possible_edges_index <- expand.grid(index_all_tfs, index_all_genes)
-                write.table(all_possible_edges_index,
+                df_all_possible_edges_idx <- expand.grid(index_all_tfs, index_all_genes)
+                write.table(df_all_possible_edges_idx,
                     file.path(
                         self$path_output,
                         "edge_label_index_for_predicting.txt"
                     ),
                     quote = F, row.names = F, col.names = F, sep = "\t"
                 )
-                df_all_possible_edges <- data.frame(
-                    TF = rownames(self$df_expr)[all_possible_edges_index$Var1 + 1],
-                    target = rownames(self$df_expr)[all_possible_edges_index$Var2 + 1]
-                )
+                df_all_possible_edges <- expand.grid(selected_tfs, rownames(self$df_expr))
                 write.table(df_all_possible_edges,
                     file.path(
                         self$path_output,
