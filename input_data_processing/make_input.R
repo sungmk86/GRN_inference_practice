@@ -1,5 +1,5 @@
 # import functions
-source("utils.R")
+source("make_input_utils.R")
 
 path_input <- "/home/seongwonhwang/Desktop/projects/mogrify/Statistical\ Consulting/"
 path_tf_and_reqdgenes <- "/home/seongwonhwang/Desktop/projects/GRN_in_general/PyG/data/Anonymized_tables/Anonymized_tables/"
