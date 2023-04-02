@@ -53,7 +53,10 @@ MakeInput <- R6Class("MakeInput",
                 )
                 apply(df_expr_full[, selected_ids], 1, sum)
             }, simplify = F)
-            self$df_expr <- as.data.frame(list_pseudobulk)
+            df_scaled = t(apply(as.data.frame(list_pseudobulk), 1, scale))
+            colnames(df_scaled) = names(list_pseudobulk)
+
+            self$df_expr <- df_scaled[!apply(df_scaled == 0, 1, all), ]
         },
         read_tfs = function() {
             input_tfs <- file.path(self$path_tf_and_reqdgenes, "tfs_anonymized.txt")
