@@ -50,8 +50,8 @@ MakeInput <- R6Class("MakeInput",
                 )
                 apply(df_expr_full[, selected_ids], 1, sum)
             }, simplify = F)
-            df_scaled = t(apply(as.data.frame(list_pseudobulk), 1, scale))
-            colnames(df_scaled) = names(list_pseudobulk)
+            df_scaled <- t(apply(as.data.frame(list_pseudobulk), 1, scale))
+            colnames(df_scaled) <- names(list_pseudobulk)
 
             self$df_expr <- df_scaled[!apply(df_scaled == 0, 1, all), ]
         },
@@ -87,6 +87,17 @@ MakeInput <- R6Class("MakeInput",
                     file.path(
                         self$path_output,
                         "edge_label_index_for_predicting.txt"
+                    ),
+                    quote = F, row.names = F, col.names = F, sep = "\t"
+                )
+                df_all_possible_edges <- data.frame(
+                    TF = rownames(self$df_expr)[all_possible_edges_index$Var1 + 1],
+                    target = rownames(self$df_expr)[all_possible_edges_index$Var2 + 1]
+                )
+                write.table(df_all_possible_edges,
+                    file.path(
+                        self$path_output,
+                        "all_possible_edges.txt"
                     ),
                     quote = F, row.names = F, col.names = F, sep = "\t"
                 )
