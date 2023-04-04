@@ -4,6 +4,7 @@ library(R6)
 # Required functions for make_input.R
 MakeInput <- R6Class("MakeInput",
     public = list(
+        TEST_ID = NULL,
         path_input = NULL,
         path_tf_and_reqdgenes = NULL,
         path_output = NULL,
@@ -11,8 +12,9 @@ MakeInput <- R6Class("MakeInput",
         df_net = NULL,
         tfs_all = NULL,
         required_genes = NULL,
-        initialize = function(path_input, path_tf_and_reqdgenes, path_output, rng_seed = 1233) {
+        initialize = function(TEST_ID, path_input, path_tf_and_reqdgenes, path_output, rng_seed = 1234) {
             set.seed(rng_seed)
+            self$TEST_ID <- TEST_ID
             self$path_input <- path_input
             self$path_tf_and_reqdgenes <- path_tf_and_reqdgenes
             self$path_output <- path_output
@@ -50,10 +52,16 @@ MakeInput <- R6Class("MakeInput",
                 )
                 apply(df_expr_full[, selected_ids], 1, sum)
             }, simplify = F)
-            df_scaled <- t(apply(as.data.frame(list_pseudobulk), 1, scale))
-            colnames(df_scaled) <- names(list_pseudobulk)
+            df_pseudobulk <- as.data.frame(list_pseudobulk)
+            # Filter genes
+            df_pseudobulk_filt <- df_pseudobulk[apply(df_pseudobulk != 0, 1, sum) != 0, ]
+            # Normalize
+            df_norm <- t(t(df_pseudobulk_filt) / apply(df_pseudobulk_filt, 2, sum))
+            # Scaling
+            df_scaled <- t(apply(log2(df_norm + 1), 1, scale))
+            colnames(df_scaled) <- colnames(df_pseudobulk_filt)
 
-            self$df_expr <- df_scaled[apply(is.na(df_scaled), 1, sum)==0, ]
+            self$df_expr <- df_scaled
         },
         read_tfs = function() {
             input_tfs <- file.path(self$path_tf_and_reqdgenes, "tfs_anonymized.txt")
@@ -74,54 +82,50 @@ MakeInput <- R6Class("MakeInput",
         },
         write_files = function(type) {
             selected_tfs <- intersect(rownames(self$df_expr), self$tfs_all)
-
+            selected_genes <- intersect(
+                rownames(self$df_expr),
+                c(self$tfs_all, self$required_genes)
+            )
+            df_embeddings <- self$df_expr[selected_genes, ]
             # write embeddings
             if (type == "predicting") {
-                df_embeddings <- self$df_expr
                 ###############################################
                 # write all possible edges from TFs to target
                 index_all_tfs <- match(selected_tfs, rownames(df_embeddings)) - 1
-                index_all_genes <- seq_len(nrow(self$df_expr)) - 1
+                index_all_genes <- seq_len(nrow(df_embeddings)) - 1
                 df_all_possible_edges_idx <- expand.grid(index_all_tfs, index_all_genes)
                 write.table(df_all_possible_edges_idx,
-                    file.path(
-                        self$path_output,
-                        "edge_label_index_for_predicting.txt"
+                    paste0(
+                        self$path_output, "/",
+                        self$TEST_ID, "_edge_index_for_predicting.txt"
                     ),
                     quote = F, row.names = F, col.names = F, sep = "\t"
                 )
-                df_all_possible_edges <- expand.grid(selected_tfs, rownames(self$df_expr))
+                df_all_possible_edges <- expand.grid(selected_tfs, rownames(df_embeddings))
                 write.table(df_all_possible_edges,
-                    file.path(
-                        self$path_output,
-                        "all_possible_edges.txt"
+                    paste0(
+                        self$path_output, "/",
+                        self$TEST_ID, "_all_possible_edges.txt"
                     ),
                     quote = F, row.names = F, col.names = F, sep = "\t"
                 )
                 ###############################################
-            } else if (type == "training") {
-                selected_genes <- intersect(
-                    rownames(self$df_expr),
-                    c(self$tfs_all, self$required_genes)
+            }else if (type == "training") {
+                df_net_filt <- subset(
+                    self$df_net,
+                    TF %in% selected_tfs & target %in% rownames(df_embeddings)
                 )
-                df_embeddings <- self$df_expr[selected_genes, ]
-            } else {
-                stop("type can be either training or predicting.")
+                df_edge_index <- data.frame(
+                    TF = match(df_net_filt$TF, rownames(df_embeddings)) - 1,
+                    target = match(df_net_filt$target, rownames(df_embeddings)) - 1
+                )
+                write.table(df_edge_index,
+                    paste0(self$path_output, "/", self$TEST_ID, "_edge_index_for_", type, ".txt"),
+                    quote = F, row.names = F, col.names = F, sep = "\t"
+                )
             }
             write.table(df_embeddings,
-                paste0(self$path_output, "/embeddings_for_", type, ".txt"),
-                quote = F, row.names = F, col.names = F, sep = "\t"
-            )
-            df_net_filt <- subset(
-                self$df_net,
-                TF %in% selected_tfs & target %in% rownames(df_embeddings)
-            )
-            df_edge_index <- data.frame(
-                TF = match(df_net_filt$TF, rownames(df_embeddings)) - 1,
-                target = match(df_net_filt$target, rownames(df_embeddings)) - 1
-            )
-            write.table(df_edge_index,
-                paste0(self$path_output, "/edge_index_for_", type, ".txt"),
+                paste0(self$path_output, "/", self$TEST_ID, "_embeddings_for_", type, ".txt"),
                 quote = F, row.names = F, col.names = F, sep = "\t"
             )
         }
