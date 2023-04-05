@@ -11,28 +11,29 @@ import pandas as pd
 import random
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score
+random.seed(123)
 
 
-def load_embedding(path_files, type):
-    dt_embeddings = pd.read_csv(path_files+'/embeddings_for_'+type+'.txt',
+def load_embedding(path_files, TEST_ID, type):
+    dt_embeddings = pd.read_csv(path_files+'/' + TEST_ID + '_embeddings_for_'+type+'.txt',
                                 header=None, sep='\t')
     embeddings = np.asarray([x.astype(np.float32)
                             for x in dt_embeddings.values])
     return (embeddings)
 
 
-def load_edge_index(path_files, type):
-    dt_edge_index = pd.read_csv(path_files+'/edge_index_for_'+type+'.txt',
+def load_edge_index(path_files, TEST_ID, type):
+    dt_edge_index = pd.read_csv(path_files+'/' + TEST_ID + '_edge_index_for_'+type+'.txt',
                                 header=None, sep='\t')
     edge_index = torch.from_numpy(np.array(dt_edge_index).T)
     return (edge_index)
 
 
-def build_graph(path_files, type):
-    edge_index = load_edge_index(path_files, type)
+def build_graph(path_files, TEST_ID, type):
+    edge_index = load_edge_index(path_files, TEST_ID, type)
     graph = Data(edge_index=edge_index)
 
-    embeddings = load_embedding(path_files, type)
+    embeddings = load_embedding(path_files, TEST_ID, type)
     graph.num_nodes = len(embeddings)
     graph.x = torch.from_numpy(embeddings).type(torch.float32)
     return (graph)
@@ -88,16 +89,21 @@ def train_link_predictor(
     return model
 
 
-def get_network(path_files, model):
-    graph_for_predicting = build_graph(path_files, 'predicting')
-    dt_all_possible_pairs = pd.read_csv(path_files+'/edge_label_index_for_predicting.txt',
+def get_network(path_files, TEST_ID, model):
+    graph_for_predicting = build_graph(path_files, TEST_ID, 'predicting')
+    dt_all_possible_edge_index = pd.read_csv(path_files+'/'+TEST_ID+'_edge_index_for_predicting.txt',
                                         header=None, sep='\t')
-    torch_all_possible_pairs = torch.from_numpy(
-        np.array(dt_all_possible_pairs).T)
+    torch_all_possible_edge_index = torch.from_numpy(
+        np.array(dt_all_possible_edge_index).T)
     model.eval()
     z = model.encode(graph_for_predicting.x, graph_for_predicting.edge_index)
-    out = model.decode(z, torch_all_possible_pairs).view(-1).sigmoid()
-    np.savetxt(path_files+'/GCN_prediction_score.txt', out.cpu().detach())
+    out = model.decode(z, torch_all_possible_edge_index).view(-1).sigmoid()
+    prediction_scores = out.cpu().detach()
+
+    dt_all_possible_edge_labels = pd.read_csv(path_files+'/'+TEST_ID+'_all_possible_edges.txt',
+                                        header=None, sep='\t')
+    dt_all_possible_edge_labels['scores'] = prediction_scores
+    dt_all_possible_edge_labels.to_csv('GCN/data/'+TEST_ID+'_prediction_score.txt', sep='\t', header= None, index=False)
 
 
 def convert_to_networkx(graph, n_sample=None):
