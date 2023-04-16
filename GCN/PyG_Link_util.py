@@ -92,7 +92,7 @@ def train_link_predictor(
 def get_network(path_files, TEST_ID, model):
     graph_for_predicting = build_graph(path_files, TEST_ID, 'predicting')
     dt_all_possible_edge_index = pd.read_csv(path_files+'/'+TEST_ID+'_edge_index_for_predicting.txt',
-                                        header=None, sep='\t')
+                                             header=None, sep='\t')
     torch_all_possible_edge_index = torch.from_numpy(
         np.array(dt_all_possible_edge_index).T)
     model.eval()
@@ -101,9 +101,10 @@ def get_network(path_files, TEST_ID, model):
     prediction_scores = out.cpu().detach()
 
     dt_all_possible_edge_labels = pd.read_csv(path_files+'/'+TEST_ID+'_all_possible_edges.txt',
-                                        header=None, sep='\t')
+                                              header=None, sep='\t')
     dt_all_possible_edge_labels['scores'] = prediction_scores
-    dt_all_possible_edge_labels.to_csv('GCN/data/'+TEST_ID+'_prediction_score.txt', sep='\t', header= None, index=False)
+    dt_all_possible_edge_labels.to_csv(
+        'GCN/data/'+TEST_ID+'_prediction_score.txt', sep='\t', header=None, index=False)
 
 
 def convert_to_networkx(graph, n_sample=None):
