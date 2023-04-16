@@ -1,3 +1,4 @@
 input_data_processing/data/
 GCN/data/
 */__pycache__
+BIC/edge_strength*.txt
