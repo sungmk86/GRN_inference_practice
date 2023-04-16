@@ -81,20 +81,33 @@ MakeInput <- R6Class("MakeInput",
             self$df_net <- df_net
         },
         write_files = function(type) {
-            selected_tfs <- intersect(rownames(self$df_expr), self$tfs_all)
+            # selected_tfs <- intersect(rownames(self$df_expr), self$tfs_all)
+
+            genes_in_network <- unique(c(self$df_net[, 1], self$df_net[, 2]))
+            candidates <- sort(intersect(genes_in_network, rownames(self$df_expr)))
+
             # selected_genes <- intersect(
             #     rownames(self$df_expr),
             #     c(self$tfs_all, self$required_genes)
             # )
-            selected_genes <- rownames(self$df_expr)
+            # selected_genes <- rownames(self$df_expr)
+            selected_genes <- candidates
             df_embeddings <- self$df_expr[selected_genes, ]
+            g_cand <- subset(self$df_net, TF %in% candidates & target %in% candidates)
             # write embeddings
             if (type == "predicting") {
                 ###############################################
                 # write all possible edges from TFs to target
-                index_all_tfs <- match(selected_tfs, rownames(df_embeddings)) - 1
-                index_all_genes <- seq_len(nrow(df_embeddings)) - 1
-                df_all_possible_edges_idx <- expand.grid(index_all_tfs, index_all_genes)
+                # index_all_tfs <- match(selected_tfs, rownames(df_embeddings)) - 1
+                # index_all_genes <- seq_len(nrow(df_embeddings)) - 1
+                # df_all_possible_edges_idx <- expand.grid(index_all_tfs, index_all_genes)
+
+                df_net_filt <- g_cand
+                df_all_possible_edges_idx <- data.frame(
+                    TF = match(df_net_filt$TF, rownames(df_embeddings)) - 1,
+                    target = match(df_net_filt$target, rownames(df_embeddings)) - 1
+                )
+
                 write.table(df_all_possible_edges_idx,
                     paste0(
                         self$path_output, "/",
@@ -102,7 +115,9 @@ MakeInput <- R6Class("MakeInput",
                     ),
                     quote = F, row.names = F, col.names = F, sep = "\t"
                 )
-                df_all_possible_edges <- expand.grid(selected_tfs, rownames(df_embeddings))
+                # df_all_possible_edges <- expand.grid(selected_tfs, rownames(df_embeddings))
+
+                df_all_possible_edges <- g_cand
                 write.table(df_all_possible_edges,
                     paste0(
                         self$path_output, "/",
@@ -112,10 +127,12 @@ MakeInput <- R6Class("MakeInput",
                 )
                 ###############################################
             }else if (type == "training") {
-                df_net_filt <- subset(
-                    self$df_net,
-                    TF %in% selected_tfs & target %in% rownames(df_embeddings)
-                )
+                # df_net_filt <- subset(
+                #     self$df_net,
+                #     TF %in% selected_tfs & target %in% rownames(df_embeddings)
+                # )
+
+                df_net_filt <- g_cand
                 df_edge_index <- data.frame(
                     TF = match(df_net_filt$TF, rownames(df_embeddings)) - 1,
                     target = match(df_net_filt$target, rownames(df_embeddings)) - 1
