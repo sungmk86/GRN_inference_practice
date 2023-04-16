@@ -82,10 +82,11 @@ MakeInput <- R6Class("MakeInput",
         },
         write_files = function(type) {
             selected_tfs <- intersect(rownames(self$df_expr), self$tfs_all)
-            selected_genes <- intersect(
-                rownames(self$df_expr),
-                c(self$tfs_all, self$required_genes)
-            )
+            # selected_genes <- intersect(
+            #     rownames(self$df_expr),
+            #     c(self$tfs_all, self$required_genes)
+            # )
+            selected_genes <- rownames(self$df_expr)
             df_embeddings <- self$df_expr[selected_genes, ]
             # write embeddings
             if (type == "predicting") {
