@@ -1,7 +1,7 @@
 from networkx import *
 import torch
 import torch_geometric.transforms as T
-from torch_geometric.nn import GCNConv
+from torch_geometric.nn import SAGEConv
 from torch_geometric.data import Data
 from torch_geometric.utils import negative_sampling
 from torch_geometric.utils import to_networkx
@@ -42,8 +42,8 @@ def build_graph(path_files, TEST_ID, type):
 class Net(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels):
         super().__init__()
-        self.conv1 = GCNConv(in_channels, hidden_channels)
-        self.conv2 = GCNConv(hidden_channels, out_channels)
+        self.conv1 = SAGEConv(in_channels, hidden_channels)
+        self.conv2 = SAGEConv(hidden_channels, out_channels)
 
     def encode(self, x, edge_index):
         x = self.conv1(x, edge_index).relu()
@@ -99,12 +99,11 @@ def get_network(path_files, TEST_ID, model):
     z = model.encode(graph_for_predicting.x, graph_for_predicting.edge_index)
     out = model.decode(z, torch_all_possible_edge_index).view(-1).sigmoid()
     prediction_scores = out.cpu().detach()
-
     dt_all_possible_edge_labels = pd.read_csv(path_files+'/'+TEST_ID+'_all_possible_edges.txt',
                                               header=None, sep='\t')
     dt_all_possible_edge_labels['scores'] = prediction_scores
     dt_all_possible_edge_labels.to_csv(
-        'GCN/data/'+TEST_ID+'_prediction_score.txt', sep='\t', header=None, index=False)
+        'graphSAGE/data/'+TEST_ID+'_prediction_score.txt', sep='\t', header=None, index=False)
 
 
 def convert_to_networkx(graph, n_sample=None):

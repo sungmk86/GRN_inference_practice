@@ -1,4 +1,4 @@
-from GCN.PyG_Link_util import *
+from graphSAGE.graphSAGE_util import *
 import os
 os.chdir('/home/seongwonhwang/Desktop/projects/git/GRN_inference_practice/')
 TEST_ID = 'TEST3'
