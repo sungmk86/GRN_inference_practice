@@ -44,10 +44,4 @@ plot_f1(results_dorothea, TEST_ID, "Dorothea")
 plot_f1(results_gtrd, TEST_ID, "GTRD")
 
 # plot number of edges
-p_df = data.frame(TYPE =names(networks), n_edges= sapply(networks, function(x) nrow(x$edges)))
-ggplot(subset(p_df, TYPE!='GTRD'), aes(x=TYPE, y=n_edges, fill= TYPE))+
-    ylab("Number of edges") +
-    xlab("") +
-    theme_bw() +
-    geom_col() +
-    geom_label(aes(label = round(n_edges * 100, 2)), col = "white")
+plot_n_edges(networks)
