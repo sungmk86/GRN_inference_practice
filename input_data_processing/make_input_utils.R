@@ -22,8 +22,8 @@ MakeInput <- R6Class("MakeInput",
         },
         read_data = function() {
             self$read_expression()
-            self$read_tfs()
-            self$read_required_genes()
+            # self$read_tfs()
+            # self$read_required_genes()
             self$read_network()
         },
         read_metadata = function() {
