@@ -59,6 +59,10 @@ class Net(torch.nn.Module):
 def train_link_predictor(
     model, train_data, val_data, optimizer, criterion, n_epochs=100
 ):
+    # Define the early stopping criteria
+    best_val_auc = 0.
+    patience = 500.
+    num_epoche_no_improve = 0
     for epoch in range(1, n_epochs + 1):
         model.train()
         optimizer.zero_grad()
@@ -80,9 +84,17 @@ def train_link_predictor(
         loss.backward()
         optimizer.step()
         val_auc = eval_link_predictor(model, val_data)
+        # Check if the validation auc has improved
+        if val_auc > best_val_auc:
+            best_val_auc = val_auc
+            num_epoche_no_improve = 0
+        else:
+            num_epoche_no_improve += 1
         if epoch % 10 == 0:
             print(
-                f"Epoch: {epoch:03d}, Train Loss: {loss:.3f}, Val AUC: {val_auc:.3f}")
+                f"Epoch: {epoch:03d}, Train Loss: {loss:.3f}, Best Val AUC: {best_val_auc:.3f}, Val AUC: {val_auc:.3f}")
+        if num_epoche_no_improve > patience:
+            break
     return model
 
 
@@ -96,7 +108,6 @@ def get_network(path_files, TEST_ID, model):
     z = model.encode(graph_for_predicting.x, graph_for_predicting.edge_index)
     out = model.decode(z, torch_all_possible_edge_index).view(-1).sigmoid()
     prediction_scores = out.cpu().detach()
-
     dt_all_possible_edge_labels = pd.read_csv(path_files+'/'+TEST_ID+'_all_possible_edges.txt',
                                               header=None, sep='\t')
     dt_all_possible_edge_labels['scores'] = prediction_scores

@@ -1,7 +1,8 @@
-from GAT.GAT_util import *
 import os
 os.chdir('/home/seongwonhwang/Desktop/projects/git/GRN_inference_practice/')
-TEST_ID = 'TEST3'
+from GAT.GAT_util import *
+
+TEST_ID = 'TEST4'
 
 # 1. Build graphs for training and predicting
 path_files = '/home/seongwonhwang/Desktop/projects/git/GRN_inference_practice/input_data_processing/data'
