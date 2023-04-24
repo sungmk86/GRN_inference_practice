@@ -5,62 +5,72 @@ library(R6)
 MakeInput <- R6Class("MakeInput",
     public = list(
         TEST_ID = NULL,
-        path_input = NULL,
-        path_tf_and_reqdgenes = NULL,
+        # path_tf_and_reqdgenes = NULL,
         path_output = NULL,
         df_expr = NULL,
         df_net = NULL,
-        tfs_all = NULL,
-        required_genes = NULL,
-        initialize = function(TEST_ID, path_input, path_tf_and_reqdgenes, path_output, rng_seed = 1234) {
+        # tfs_all = NULL,
+        # required_genes = NULL,
+        initialize = function(TEST_ID = NULL,
+                              path_expr = NULL, path_meta = NULL,
+                              pseudobulking = T, n_cells_for_selecting = 150, column_name = "label.main",
+                              is_normalized = F, is_scaled = F,
+                              path_network = NULL, path_tf_and_reqdgenes = NULL,
+                              path_output = NULL, rng_seed = 1234) {
             set.seed(rng_seed)
             self$TEST_ID <- TEST_ID
-            self$path_input <- path_input
-            self$path_tf_and_reqdgenes <- path_tf_and_reqdgenes
+            # self$path_tf_and_reqdgenes <- path_tf_and_reqdgenes
             self$path_output <- path_output
-            self$read_data()
-        },
-        read_data = function() {
-            self$read_expression()
+
+            # read data
+            self$read_expression(path_expr, path_meta, pseudobulking, n_cells_for_selecting, column_name, is_normalized, is_scaled)
             # self$read_tfs()
             # self$read_required_genes()
-            self$read_network()
+            self$read_network(path_network)
         },
-        read_metadata = function() {
-            input_expr_meta <- file.path(
-                self$path_input,
-                "Bayesian_DE/iterative_test/iterative_test/TF_experiment_metadata.gz"
-            )
-            return(read.delim(input_expr_meta))
-        },
-        read_expression = function(cells_to_be_removed = c("iPSC", "K562"), column_name = "label.main", n_cells_for_pseudobulking = 150) {
-            input_expr <- file.path(
-                self$path_input,
-                "Bayesian_DE/iterative_test/iterative_test/TF_experiment_expression_matrix.gz"
-            )
-            df_expr_full <- read.delim(input_expr, row.names = 1)
+        read_expression = function(path_expr, path_meta, pseudobulking, n_cells_for_selecting, column_name, is_normalized, is_scaled, cells_to_be_removed = c("iPSC", "K562")) {
+            df_expr_full <- read.delim(path_expr, row.names = 1)
             df_expr_full$id <- NULL
 
-            df_metadata <- self$read_metadata()
-            message("Construct pseudobulk data")
+            df_metadata <- read.delim(path_meta)
             celltypes <- setdiff(df_metadata[[column_name]], cells_to_be_removed)
-            list_pseudobulk <- sapply(celltypes, function(celltype) {
-                message(celltype)
-                selected_idx <- df_metadata[[column_name]] == celltype
-                selected_ids <- rep(sample(colnames(df_expr_full)[selected_idx]),
-                    length.out = n_cells_for_pseudobulking
-                )
-                apply(df_expr_full[, selected_ids], 1, sum)
-            }, simplify = F)
-            df_pseudobulk <- as.data.frame(list_pseudobulk)
-            # Filter genes
-            df_pseudobulk_filt <- df_pseudobulk[apply(df_pseudobulk != 0, 1, sum) != 0, ]
-            # Normalize
-            df_norm <- t(t(df_pseudobulk_filt) / apply(df_pseudobulk_filt, 2, sum))
-            # Scaling
-            df_scaled <- t(apply(log2(df_norm + 1), 1, scale))
-            colnames(df_scaled) <- colnames(df_pseudobulk_filt)
 
+            if (pseudobulking) {
+                message("Construct pseudobulk data")
+                list_selected <- sapply(celltypes, function(celltype) {
+                    message(celltype)
+                    selected_idx <- df_metadata[[column_name]] == celltype
+                    selected_ids <- rep(sample(colnames(df_expr_full)[selected_idx]),
+                        length.out = n_cells_for_selecting
+                    )
+                    apply(df_expr_full[, selected_ids], 1, sum)
+                }, simplify = F)
+            } else {
+                list_selected <- sapply(celltypes, function(celltype) {
+                    message(celltype)
+                    selected_idx <- df_metadata[[column_name]] == celltype
+                    selected_ids <- rep(sample(colnames(df_expr_full)[selected_idx]),
+                        length.out = n_cells_for_selecting
+                    )
+                    df_expr_full[, selected_ids]
+                }, simplify = F)
+            }
+            df_combined <- as.data.frame(list_selected)
+            # Filter genes
+            df_combined_subset <- df_combined[apply(df_combined != 0, 1, sum) != 0, ]
+            # Normalize
+            if (!is_normalized) {
+                df_norm <- t(t(df_combined_subset) / apply(df_combined_subset, 2, sum))
+            } else {
+                df_norm <- df_combined_subset
+            }
+            # Scaling
+            if (!is_scaled) {
+                df_scaled <- t(apply(log2(df_norm + 1), 1, scale))
+            } else {
+                df_scaled <- df_norm
+            }
+            colnames(df_scaled) <- colnames(df_combined_subset)
             self$df_expr <- df_scaled
         },
         read_tfs = function() {
@@ -73,9 +83,8 @@ MakeInput <- R6Class("MakeInput",
             input_required_genes <- file.path(self$path_tf_and_reqdgenes, "reqd_genes_anonymized.txt")
             self$required_genes <- read.table(input_required_genes)[, 1]
         },
-        read_network = function() {
-            input_network <- file.path(self$path_input, "BIC/data/networks_anonymize.txt")
-            df_net <- read.delim(input_network)
+        read_network = function(path_network) {
+            df_net <- read.delim(path_network)
             df_net <- df_net[!duplicated(df_net), ]
             colnames(df_net) <- c("TF", "target")
             self$df_net <- df_net
@@ -126,7 +135,7 @@ MakeInput <- R6Class("MakeInput",
                     quote = F, row.names = F, col.names = F, sep = "\t"
                 )
                 ###############################################
-            }else if (type == "training") {
+            } else if (type == "training") {
                 # df_net_filt <- subset(
                 #     self$df_net,
                 #     TF %in% selected_tfs & target %in% rownames(df_embeddings)
