@@ -2,10 +2,11 @@ import os
 os.chdir('/home/seongwonhwang/Desktop/projects/git/GRN_inference_practice/')
 from GAT.GAT_util import *
 
-TEST_ID = 'TEST4'
+TEST_ID = 'NodeAb1_control_Early_endoderm'
 
 # 1. Build graphs for training and predicting
-path_files = '/home/seongwonhwang/Desktop/projects/git/GRN_inference_practice/input_data_processing/data'
+# path_files = '/home/seongwonhwang/Desktop/projects/git/GRN_inference_practice/input_data_processing/data'
+path_files = '/home/seongwonhwang/Desktop/projects/git/Node_ablation_practice/GRN/data'
 graph_for_training = build_graph(path_files, TEST_ID, 'training')
 
 # 2. Split the graph into training and validation
@@ -28,3 +29,7 @@ model = train_link_predictor(
 
 # 4. Save the final predicted model to a file
 get_network(path_files, TEST_ID, model)
+# > png('NodeAb1_control_Early_endoderm_prediction_score_distribution.png', width=500, height=500, res=150)
+# > df = read.table('NodeAb1_control_Early_endoderm_prediction_score.txt')
+# > hist(df[,3],breaks=100, xlab='score', main='Score distribution')
+# > dev.off()
