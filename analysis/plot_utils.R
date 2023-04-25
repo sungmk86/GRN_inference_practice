@@ -33,6 +33,7 @@ load_all_networks <- function(list_predicted, tfs_all) {
   path_networks <- list(
     GCN = list_predicted[["GCN"]],
     graphSAGE = list_predicted[["graphSAGE"]],
+    GAT_pseudo = list_predicted[["GAT_pseudo"]],
     GAT = list_predicted[["GAT"]],
     eBIC = "/home/seongwonhwang/Desktop/projects/git/GRN_inference_practice/BIC/edge_strength_filt.txt",
     STRING = "/home/seongwonhwang/Desktop/projects/mogrify/Statistical\ Consulting/BIC/data/networks_anonymize.txt",
@@ -68,14 +69,14 @@ plot_f1 <- function(results_f1, TEST_ID, type) {
   dev.off()
   return(p)
 }
-plot_n_edges = function(networks){
-  p_df = data.frame(TYPE =names(networks), n_edges= sapply(networks, function(x) nrow(x$edges)))
-  p = ggplot(subset(p_df, TYPE!='GTRD'), aes(x=TYPE, y=n_edges, fill= TYPE))+
-      ylab("Number of edges") +
-      xlab("") +
-      theme_bw() +
-      geom_col() +
-      geom_label(aes(label = round(n_edges * 100, 2)), col = "white")
+plot_n_edges <- function(networks) {
+  p_df <- data.frame(TYPE = names(networks), n_edges = sapply(networks, function(x) nrow(x$edges)))
+  p <- ggplot(subset(p_df, TYPE != "GTRD"), aes(x = TYPE, y = n_edges, fill = TYPE)) +
+    ylab("Number of edges") +
+    xlab("") +
+    theme_bw() +
+    geom_col() +
+    geom_label(aes(label = round(n_edges * 100, 2)), col = "white")
   plot(p)
 }
 

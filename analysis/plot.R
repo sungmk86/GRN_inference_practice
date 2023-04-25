@@ -4,7 +4,7 @@ source("plot_utils.R")
 # File path where GCN output stored
 path_input <- "/home/seongwonhwang/Desktop/projects/mogrify/Statistical\ Consulting/"
 path_tf_and_reqdgenes <- "/home/seongwonhwang/Desktop/projects/GRN_in_general/PyG/data/Anonymized_tables/Anonymized_tables/"
-TEST_ID <- "TEST3"
+TEST_ID <- "TEST4"
 
 # get all genes
 input_expr <- file.path(path_input, "Bayesian_DE/iterative_test/iterative_test/TF_experiment_expression_matrix.gz")
@@ -19,8 +19,10 @@ tfs_all <- unique(c(external_tfs, tfs))
 # Load graph predictions
 list_predicted <- list()
 for (TYPE in c("GCN", "graphSAGE", "GAT")) {
-    list_predicted[[TYPE]] <- read_graph_prediction(TYPE, TEST_ID, cutoff = 0.8)
+    list_predicted[[TYPE]] <- read_graph_prediction(TYPE, 'TEST3', cutoff = 0.8)
 }
+names(list_predicted)[3]= 'GAT_pseudo'
+list_predicted[['GAT']] <- read_graph_prediction(TYPE, 'TEST4', cutoff = 0.8)
 networks <- load_all_networks(list_predicted, tfs_all)
 
 df_all_possible_edges <- expand.grid(tfs_all, genes_all)
