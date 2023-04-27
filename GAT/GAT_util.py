@@ -11,7 +11,6 @@ import pandas as pd
 import random
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score
-random.seed(123)
 
 
 def load_embedding(path_files, TEST_ID, type):
@@ -98,7 +97,7 @@ def train_link_predictor(
     return model
 
 
-def get_network(path_files, TEST_ID, model):
+def get_network(path_files, TEST_ID, model, rng_seed):
     graph_for_predicting = build_graph(path_files, TEST_ID, 'predicting')
     dt_all_possible_edge_index = pd.read_csv(path_files+'/'+TEST_ID+'_edge_index_for_predicting.txt',
                                              header=None, sep='\t')
@@ -112,7 +111,7 @@ def get_network(path_files, TEST_ID, model):
                                               header=None, sep='\t')
     dt_all_possible_edge_labels['scores'] = prediction_scores
     dt_all_possible_edge_labels.to_csv(
-        'GAT/data/'+TEST_ID+'_prediction_score.txt', sep='\t', header=None, index=False)
+        'GAT/data/'+TEST_ID+'_rng'+str(rng_seed)+'_prediction_score.txt', sep='\t', header=None, index=False)
 
 
 def convert_to_networkx(graph, n_sample=None):

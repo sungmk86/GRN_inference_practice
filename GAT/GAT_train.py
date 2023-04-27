@@ -1,8 +1,14 @@
 import os
 os.chdir('/home/seongwonhwang/Desktop/projects/git/GRN_inference_practice/')
 from GAT.GAT_util import *
+rng_seed=123
+# Set a fixed seed for reproducibility
+random.seed(rng_seed)
+torch.manual_seed(rng_seed)
+np.random.seed(rng_seed)
 
-TEST_ID = 'NodeAb1_control_Early_endoderm'
+
+TEST_ID = 'NodeAb1_ablation_Node'
 
 # 1. Build graphs for training and predicting
 # path_files = '/home/seongwonhwang/Desktop/projects/git/GRN_inference_practice/input_data_processing/data'
@@ -18,6 +24,7 @@ split = T.RandomLinkSplit(
     neg_sampling_ratio=1.0,
 )
 train_data, val_data, test_data = split(graph_for_training)
+print(train_data.edge_index)
 
 # 3. Build a model and train
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -27,9 +34,10 @@ criterion = torch.nn.BCEWithLogitsLoss()
 model = train_link_predictor(
     model, train_data, val_data, optimizer, criterion, n_epochs=5000)
 
+
 # 4. Save the final predicted model to a file
-get_network(path_files, TEST_ID, model)
-# > png('NodeAb1_control_Early_endoderm_prediction_score_distribution.png', width=500, height=500, res=150)
-# > df = read.table('NodeAb1_control_Early_endoderm_prediction_score.txt')
+get_network(path_files, TEST_ID, model, rng_seed)
+# > png('NodeAb1_control_Node_prediction_score_distribution.png', width=500, height=500, res=150)
+# > df = read.table('NodeAb1_control_Node_prediction_score.txt')
 # > hist(df[,3],breaks=100, xlab='score', main='Score distribution')
 # > dev.off()
