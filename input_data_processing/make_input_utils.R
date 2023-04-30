@@ -5,11 +5,11 @@ library(R6)
 MakeInput <- R6Class("MakeInput",
     public = list(
         TEST_ID = NULL,
-        # path_tf_and_reqdgenes = NULL,
+        path_tf_and_reqdgenes = NULL,
         path_output = NULL,
         df_expr = NULL,
         df_net = NULL,
-        # tfs_all = NULL,
+        tfs_all = NULL,
         # required_genes = NULL,
         initialize = function(TEST_ID = NULL,
                               path_expr = NULL, path_meta = NULL,
@@ -19,12 +19,12 @@ MakeInput <- R6Class("MakeInput",
                               path_output = NULL, rng_seed = 1234) {
             set.seed(rng_seed)
             self$TEST_ID <- TEST_ID
-            # self$path_tf_and_reqdgenes <- path_tf_and_reqdgenes
+            self$path_tf_and_reqdgenes <- path_tf_and_reqdgenes
             self$path_output <- path_output
 
             # read data
             self$read_expression(path_expr, path_meta, pseudobulking, n_cells_for_selecting, column_name, is_normalized, is_scaled)
-            # self$read_tfs()
+            self$read_tfs()
             # self$read_required_genes()
             self$read_network(path_network)
         },
@@ -74,10 +74,16 @@ MakeInput <- R6Class("MakeInput",
             self$df_expr <- df_scaled
         },
         read_tfs = function() {
-            input_tfs <- file.path(self$path_tf_and_reqdgenes, "tfs_anonymized.txt")
-            tfs <- read.table(input_tfs)[, 1]
-            external_tfs <- grep("tf", rownames(self$df_expr), value = T)
-            self$tfs_all <- unique(c(external_tfs, tfs))
+            if (file.exists(self$path_tf_and_reqdgenes)) {
+                input_tfs <- "/home/seongwonhwang/Desktop/projects/git/Node_ablation_practice/TFDB3/Gallus_gallus_TF"
+                tfs <- setdiff(read.delim(input_tfs)$Symbol, "-")
+                self$tfs_all <- tfs
+            } else {
+                input_tfs <- file.path(self$path_tf_and_reqdgenes, "tfs_anonymized.txt")
+                tfs <- read.table(input_tfs)[, 1]
+                external_tfs <- grep("tf", rownames(self$df_expr), value = T)
+                self$tfs_all <- unique(c(external_tfs, tfs))
+            }
         },
         read_required_genes = function() {
             input_required_genes <- file.path(self$path_tf_and_reqdgenes, "reqd_genes_anonymized.txt")
@@ -102,7 +108,7 @@ MakeInput <- R6Class("MakeInput",
             # selected_genes <- rownames(self$df_expr)
             selected_genes <- candidates
             df_embeddings <- self$df_expr[selected_genes, ]
-            g_cand <- subset(self$df_net, TF %in% candidates & target %in% candidates)
+            g_cand <- subset(self$df_net, TF %in% self$tfs_all & target %in% candidates)
             # write embeddings
             if (type == "predicting") {
                 ###############################################
