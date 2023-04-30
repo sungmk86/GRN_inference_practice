@@ -1,0 +1,31 @@
+TEST1
+ - Fixed a bug in node_labels 
+ - Filter genes
+ - Normalize
+ - Scaling
+ - Used TFs and required_genes only for both training and predicting
+ - pseudobulking 150 cells
+TEST2
+ - Fixed a bug in node_labels 
+ - Filter genes
+ - Normalize
+ - Scaling
+ - Used TFs and all genes for both training and predicting
+ - pseudobulking 150 cells
+TEST3
+ - Fixed a bug in node_labels 
+ - Filter genes
+ - Normalize
+ - Scaling
+ - Used TFs and all genes for both training and predicting
+ * Use the same blacklist as eBIC - selected_genes <- intersect of genes in expression and network
+ - pseudobulking 150 cells
+TEST4
+ - Fixed a bug in node_labels
+ - Filter genes
+ - Normalize
+ - Scaling
+ - Used TFs and all genes for both training and predicting
+ - Use the same blacklist as eBIC - selected_genes <- intersect of genes in expression and network
+ - randomly selected 150 single cells
+ - early stopping
