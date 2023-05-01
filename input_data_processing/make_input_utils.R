@@ -108,7 +108,7 @@ MakeInput <- R6Class("MakeInput",
             # selected_genes <- rownames(self$df_expr)
             selected_genes <- candidates
             df_embeddings <- self$df_expr[selected_genes, ]
-            g_cand <- subset(self$df_net, TF %in% self$tfs_all & target %in% candidates)
+            g_cand <- subset(self$df_net, TF %in% intersect(candidates, self$tfs_all) & target %in% candidates)
             # write embeddings
             if (type == "predicting") {
                 ###############################################
