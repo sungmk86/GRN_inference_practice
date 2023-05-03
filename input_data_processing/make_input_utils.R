@@ -10,11 +10,13 @@ MakeInput <- R6Class("MakeInput",
         df_expr = NULL,
         df_net = NULL,
         tfs_all = NULL,
+        genes_of_interest = NULL,
         # required_genes = NULL,
         initialize = function(TEST_ID = NULL,
                               path_expr = NULL, path_meta = NULL,
                               pseudobulking = T, n_cells_for_selecting = 150, column_name = "label.main",
                               is_normalized = F, is_scaled = F,
+                              path_genes_of_interest = NULL,
                               path_network = NULL, path_tf_and_reqdgenes = NULL,
                               path_output = NULL, rng_seed = 1234) {
             set.seed(rng_seed)
@@ -23,12 +25,12 @@ MakeInput <- R6Class("MakeInput",
             self$path_output <- path_output
 
             # read data
-            self$read_expression(path_expr, path_meta, pseudobulking, n_cells_for_selecting, column_name, is_normalized, is_scaled)
+            self$read_expression(path_expr, path_meta, pseudobulking, n_cells_for_selecting, column_name, is_normalized, is_scaled, path_genes_of_interest)
             self$read_tfs()
             # self$read_required_genes()
             self$read_network(path_network)
         },
-        read_expression = function(path_expr, path_meta, pseudobulking, n_cells_for_selecting, column_name, is_normalized, is_scaled, cells_to_be_removed = c("iPSC", "K562")) {
+        read_expression = function(path_expr, path_meta, pseudobulking, n_cells_for_selecting, column_name, is_normalized, is_scaled, cells_to_be_removed = c("iPSC", "K562"), path_genes_of_interest = NULL) {
             df_expr_full <- read.delim(path_expr, row.names = 1)
             df_expr_full$id <- NULL
 
@@ -43,7 +45,7 @@ MakeInput <- R6Class("MakeInput",
                     selected_ids <- rep(sample(colnames(df_expr_full)[selected_idx]),
                         length.out = n_cells_for_selecting
                     )
-                    apply(df_expr_full[, selected_ids], 1, sum)
+                    apply(df_expr_full[, selected_ids], 1, mean)
                 }, simplify = F)
             } else {
                 list_selected <- sapply(celltypes, function(celltype) {
@@ -72,6 +74,11 @@ MakeInput <- R6Class("MakeInput",
             }
             colnames(df_scaled) <- colnames(df_combined_subset)
             self$df_expr <- df_scaled
+            if (!is.null(path_genes_of_interest) && file.exists(path_genes_of_interest)) {
+                self$genes_of_interest <- read.table(path_genes_of_interest)[, 1]
+            } else {
+                self$genes_of_interest <- rownames(self$df_expr)
+            }
         },
         read_tfs = function() {
             if (file.exists(self$path_tf_and_reqdgenes)) {
@@ -147,7 +154,7 @@ MakeInput <- R6Class("MakeInput",
                 #     TF %in% selected_tfs & target %in% rownames(df_embeddings)
                 # )
 
-                df_net_filt <- g_cand
+                df_net_filt <- subset(g_cand, TF %in% self$genes_of_interest & target %in% self$genes_of_interest)
                 df_edge_index <- data.frame(
                     TF = match(df_net_filt$TF, rownames(df_embeddings)) - 1,
                     target = match(df_net_filt$target, rownames(df_embeddings)) - 1

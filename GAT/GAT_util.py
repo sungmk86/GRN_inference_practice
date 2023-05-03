@@ -101,7 +101,8 @@ def train_link_predictor(
         # Check if the validation auc has improved
         if val_auc > best_val_auc:
             # update the best validation AUC score
-            best_val_auc = val_auc
+            if epoch >= 1000:
+                best_val_auc = val_auc
             # reset the number of epochs without improvement
             num_epoche_no_improve = 0
             # save the best model as a pickle file
