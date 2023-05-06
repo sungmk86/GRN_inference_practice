@@ -22,7 +22,7 @@ for rng_seed in (111, 123, 1234):
                 num_test=0.,
                 is_undirected=False,
                 add_negative_train_samples=True,
-                neg_sampling_ratio=10.0,
+                neg_sampling_ratio=5.0,
             )
             train_data, val_data, test_data = split(graph_for_training)
             # 3. Build a model and train
