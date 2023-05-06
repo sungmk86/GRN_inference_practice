@@ -146,6 +146,17 @@ def get_network(path_files, TEST_ID, rng_seed):
         'GAT/data/'+TEST_ID+'_rng'+str(rng_seed)+'_prediction_score.txt', sep='\t', header=None, index=False)
 
 
+def plot_histogram(tensor_data):
+    # plot_histogram(prediction_scores)
+    data = tensor_data.numpy()  # Convert tensor to NumPy array
+    plt.hist(data, bins='auto', alpha=0.7, rwidth=0.85)
+    plt.grid(axis='y', alpha=0.5)
+    plt.xlabel('Value')
+    plt.ylabel('Frequency')
+    plt.title('Histogram')
+    plt.show()
+
+
 def convert_to_networkx(graph, n_sample=None):
     g = to_networkx(graph, node_attrs=["x"])
     y = graph.y.numpy()
