@@ -31,7 +31,7 @@ MakeInput <- R6Class("MakeInput",
             # self$read_required_genes()
             self$read_network(path_network)
         },
-        read_expression = function(path_expr, path_meta, pseudobulking, n_cells_for_selecting, column_name, is_normalized, is_scaled, cells_to_be_removed = c("iPSC", "K562"), path_genes_of_interest = NULL) {
+        read_expression = function(path_expr, path_meta, pseudobulking, n_cells_for_selecting, column_name, is_normalized, is_scaled, cells_to_be_removed, path_genes_of_interest) {
             df_expr_full <- read.delim(path_expr, row.names = 1)
             df_expr_full$id <- NULL
 
@@ -82,9 +82,8 @@ MakeInput <- R6Class("MakeInput",
             }
         },
         read_tfs = function() {
-            if (file.exists(self$path_tf_and_reqdgenes)) {
-                input_tfs <- "/home/seongwonhwang/Desktop/projects/git/Node_ablation_practice/TFDB3/Gallus_gallus_TF"
-                tfs <- setdiff(read.delim(input_tfs)$Symbol, "-")
+            if (file.exists(self$path_tf_and_reqdgenes) && !file.info(self$path_tf_and_reqdgenes)$isdir) {
+                tfs <- setdiff(read.delim(self$path_tf_and_reqdgenes)$Symbol, c("-", ""))
                 self$tfs_all <- tfs
             } else {
                 input_tfs <- file.path(self$path_tf_and_reqdgenes, "tfs_anonymized.txt")
@@ -113,19 +112,21 @@ MakeInput <- R6Class("MakeInput",
             # )
             selected_genes <- rownames(self$df_expr)
             df_embeddings <- self$df_expr[selected_genes, ]
+            # df_net_cand <- expand.grid(selected_tfs, rownames(df_embeddings))
+            # colnames(df_net_cand) <- c("TF", "target")
             df_net_cand <- subset(self$df_net, TF %in% selected_tfs & target %in% selected_genes)
             # write embeddings
             if (type == "predicting") {
                 ###############################################
                 # write all possible edges from TFs to target
-                index_all_tfs <- match(selected_tfs, rownames(df_embeddings)) - 1
-                index_all_genes <- seq_len(nrow(df_embeddings)) - 1
-                df_all_possible_edges_idx <- expand.grid(index_all_tfs, index_all_genes)
+                # index_all_tfs <- match(selected_tfs, rownames(df_embeddings)) - 1
+                # index_all_genes <- seq_len(nrow(df_embeddings)) - 1
+                # df_all_possible_edges_idx <- expand.grid(index_all_tfs, index_all_genes)
 
-                # df_all_possible_edges_idx <- data.frame(
-                #     TF = match(df_net_cand$TF, rownames(df_embeddings)) - 1,
-                #     target = match(df_net_cand$target, rownames(df_embeddings)) - 1
-                # )
+                df_all_possible_edges_idx <- data.frame(
+                    TF = match(df_net_cand$TF, rownames(df_embeddings)) - 1,
+                    target = match(df_net_cand$target, rownames(df_embeddings)) - 1
+                )
 
                 write.table(df_all_possible_edges_idx,
                     paste0(
@@ -134,9 +135,9 @@ MakeInput <- R6Class("MakeInput",
                     ),
                     quote = F, row.names = F, col.names = F, sep = "\t"
                 )
-                df_all_possible_edges <- expand.grid(selected_tfs, rownames(df_embeddings))
+                # df_all_possible_edges <- expand.grid(selected_tfs, rownames(df_embeddings))
 
-                # df_all_possible_edges <- df_net_cand
+                df_all_possible_edges <- df_net_cand
                 write.table(df_all_possible_edges,
                     paste0(
                         self$path_output, "/",
