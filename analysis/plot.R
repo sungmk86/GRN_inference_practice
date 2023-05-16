@@ -16,7 +16,7 @@ tfs <- get_tfs(path_tf_and_reqdgenes)
 tfs_all <- unique(c(external_tfs, tfs))
 
 TEST_ID <- "TEST3"
-lst_rng_seed <- c("", "_rng111_neg2.0", "_rng123_neg2.0", "_rng1234_neg2.0", "_rng111_neg3.0", "_rng123_neg3.0", "_rng1234_neg3.0", "_rng111_neg5.0", "_rng123_neg5.0", "_rng1234_neg5.0")
+lst_rng_seed <- c("", "_rng111_neg2.0", "_rng123_neg2.0", "_rng1234_neg2.0", "_rng111_neg3.0", "_rng123_neg3.0", "_rng1234_neg3.0", "_rng111_neg5.0", "_rng123_neg5.0", "_rng1234_neg5.0", "_rng111_neg3.0_super", "_rng123_neg3.0_super", "_rng1234_neg3.0_super",  "_rng111_neg3.0_linear", "_rng123_neg3.0_linear", "_rng1234_neg3.0_linear", "_rng111_neg3.0_suplinear", "_rng123_neg3.0_suplinear", "_rng1234_neg3.0_suplinear")
 
 # Load graph predictions
 list_predicted <- list()
@@ -49,8 +49,8 @@ results_gtrd <- lapply(networks, function(x) {
 })
 
 # Represent metrics
-plot_f1(results_dorothea, paste0(TEST_ID, "_rng"), "Dorothea")
-plot_f1(results_gtrd, paste0(TEST_ID, "_rng"), "GTRD")
+plot_f1(results_dorothea, paste0(TEST_ID, "_rng_boxplot"), "Dorothea")
+plot_f1(results_gtrd, paste0(TEST_ID, "_rng_boxplot"), "GTRD")
 
 plot_score_distribution(dir_network = paste0("../GAT/data/"), TEST_ID)
 
@@ -59,4 +59,4 @@ plot_edge_scores_comp(dir_network = paste0("../GAT/data/"), TEST_ID, lst_rng_see
 
 
 # plot number of edges
-plot_n_edges(networks)
+#plot_n_edges(networks)

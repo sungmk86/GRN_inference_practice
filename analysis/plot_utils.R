@@ -52,24 +52,36 @@ plot_f1 <- function(results_f1, TEST_ID, type) {
   accuracies <- sapply(results_f1, function(x) x$byClass)
   y <- melt(data.frame(metric = rownames(accuracies), accuracies))
 
+  # p <- ggplot(
+  #   y[y$metric %in% c("F1", "Recall", "Precision") & y$variable != type, ],
+  #   aes(x = variable, y = value * 100, fill = variable)
+  # ) +
+  #   ylab("(%)") +
+  #   xlab("") +
+  #   theme_bw() +
+  #   guides(fill = guide_legend(title = "Approach")) +
+  #   # scale_fill_manual(values = ) +
+  #   geom_col() +
+  #   facet_wrap(~metric, ncol = 3, scales = "free") +
+  #   geom_label(aes(label = round(value * 100, 2)), col = "white") +
+  #   theme(axis.text.x = element_blank())
+  # fig_width <- max(6.5, length(results_f1) * 1.5)
+  p_df = y[y$metric %in% c("F1", "Recall", "Precision") & y$variable != type, ]
+  p_df$group = sub('_rng[0-9]*', '', p_df$variable)
   p <- ggplot(
-    y[y$metric %in% c("F1", "Recall", "Precision") & y$variable != type, ],
-    aes(x = variable, y = value * 100, fill = variable)
+    p_df,
+    aes(x = group, y = value * 100)
   ) +
-    ylab("(%)") +
-    xlab("") +
+    geom_boxplot() +
     theme_bw() +
-    guides(fill = guide_legend(title = "Approach")) +
-    # scale_fill_manual(values = ) +
-    geom_col() +
+    theme(axis.text.x = element_text(angle = 40, vjust = 1, hjust=1))+
     facet_wrap(~metric, ncol = 3, scales = "free") +
-    geom_label(aes(label = round(value * 100, 2)), col = "white") +
-    theme(axis.text.x = element_blank())
-  fig_width <- max(6.5, length(results_f1) * 1.5)
+    ylab("(%)") +
+    xlab("")
+  fig_width <- max(4, length(results_f1) *.6)
   pdf(fig_name, width = fig_width, height = 3.5)
   plot(p)
   dev.off()
-  return(p)
 }
 
 
