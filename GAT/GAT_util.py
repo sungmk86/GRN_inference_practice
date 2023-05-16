@@ -43,11 +43,13 @@ class Net(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels):
         super().__init__()
         self.conv1 = SuperGATConv(in_channels, hidden_channels * 2, heads=2)
+        self.Linear = torch.nn.Linear(hidden_channels * 4, hidden_channels * 4)
         self.conv2 = SuperGATConv(hidden_channels * 4, out_channels, heads=2)
 
     def encode(self, x, edge_index):
-        x = self.conv1(x, edge_index).relu()
-        return self.conv2(x, edge_index)
+        x1 = self.conv1(x, edge_index).relu()
+        x2 = self.Linear(x1)
+        return self.conv2(x2, edge_index)
 
     def decode(self, z, edge_label_index):
         return (z[edge_label_index[0]] * z[edge_label_index[1]]).sum(
@@ -60,13 +62,14 @@ class Net(torch.nn.Module):
 
 
 def train_link_predictor(
-    model, train_data, val_data, optimizer, criterion, TEST_ID, rng_seed=1234, neg_ratio=1.0, n_epochs=100
+    model, train_data, val_data, optimizer, criterion, TEST_ID, rng_seed=1234, neg_ratio=1.0, n_epochs=100, file_suffix=''
 ):
+    fname_output = 'GAT/data/'+TEST_ID+'_rng'+str(rng_seed)+'_neg'+str(neg_ratio) + file_suffix
     # Define the early stopping criteria
     best_val_auc = 0.
     patience = 500.
     num_epoche_no_improve = 0
-    with open('GAT/data/'+TEST_ID+'_rng'+str(rng_seed)+'_neg'+str(neg_ratio)+'.log', 'w') as f:
+    with open( fname_output + '.log', 'w') as f:
         f.write('Start training..\n')
     for epoch in range(1, n_epochs + 1):
         # set the model to training mode
@@ -106,9 +109,9 @@ def train_link_predictor(
             # reset the number of epochs without improvement
             num_epoche_no_improve = 0
             # save the best model as a pickle file
-            with open('GAT/data/'+TEST_ID+'_rng'+str(rng_seed)+'_neg'+str(neg_ratio)+'_model.pkl', 'wb') as f:
+            with open(fname_output + '_model.pkl', 'wb') as f:
                 pickle.dump(model, f)
-            with open('GAT/data/'+TEST_ID+'_rng'+str(rng_seed)+'_neg'+str(neg_ratio)+'.log', 'a') as f:
+            with open(fname_output + '.log', 'a') as f:
                 f.write('..model saved\n')
                 log_text = f"Epoch: {epoch:03d}, Train Loss: {loss:.3f}, Best Val AUC: {best_val_auc:.3f}, Val AUC: {val_auc:.3f}\n"
                 f.write(log_text)
@@ -116,7 +119,7 @@ def train_link_predictor(
             # increment the number of epochs without improvement
             num_epoche_no_improve += 1
         if epoch % 10 == 0:
-            with open('GAT/data/'+TEST_ID+'_rng'+str(rng_seed)+'_neg'+str(neg_ratio)+'.log', 'a') as f:
+            with open(fname_output + '.log', 'a') as f:
                 log_text = f"Epoch: {epoch:03d}, Train Loss: {loss:.3f}, Best Val AUC: {best_val_auc:.3f}, Val AUC: {val_auc:.3f}\n"
                 f.write(log_text)
         # if epoch > 5000 and num_epoche_no_improve > patience:
@@ -125,13 +128,14 @@ def train_link_predictor(
     return model
 
 
-def get_network(path_files, TEST_ID, rng_seed, neg_ratio):
+def get_network(path_files, TEST_ID, rng_seed, neg_ratio, file_suffix=''):
+    fname_output = 'GAT/data/'+TEST_ID+'_rng'+str(rng_seed)+'_neg'+str(neg_ratio) + file_suffix
     graph_for_predicting = build_graph(path_files, TEST_ID, 'predicting')
     dt_all_possible_edge_index = pd.read_csv(path_files+'/'+TEST_ID+'_edge_index_for_predicting.txt',
                                              header=None, sep='\t')
     torch_all_possible_edge_index = torch.from_numpy(
         np.array(dt_all_possible_edge_index).T)
-    with open('GAT/data/'+TEST_ID+'_rng'+str(rng_seed)+'_neg' + str(neg_ratio) + '_model.pkl', 'rb') as f:
+    with open(fname_output + '_model.pkl', 'rb') as f:
         best_model = pickle.load(f)
     best_model.eval()
     z = best_model.encode(graph_for_predicting.x,
@@ -143,7 +147,7 @@ def get_network(path_files, TEST_ID, rng_seed, neg_ratio):
                                               header=None, sep='\t')
     dt_all_possible_edge_labels['scores'] = prediction_scores
     dt_all_possible_edge_labels.to_csv(
-        'GAT/data/'+TEST_ID+'_rng'+str(rng_seed)+'_neg' + str(neg_ratio) + '_prediction_score.txt', sep='\t', header=None, index=False)
+        fname_output + '_prediction_score.txt', sep='\t', header=None, index=False)
 
 
 def plot_histogram(tensor_data):

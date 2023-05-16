@@ -4,6 +4,7 @@ from GAT.GAT_util import *
 
 TEST_ID = 'TEST3'
 neg_ratio = 3.0
+file_suffix = '_suplinear'
 
 for rng_seed in (111, 123, 1234):
     # Set a fixed seed for reproducibility
@@ -29,6 +30,6 @@ for rng_seed in (111, 123, 1234):
     optimizer = torch.optim.Adam(params=model.parameters(), lr=0.002)
     criterion = torch.nn.BCEWithLogitsLoss()
     model = train_link_predictor(
-        model, train_data, val_data, optimizer, criterion, TEST_ID, rng_seed, neg_ratio, n_epochs=5000)
+        model, train_data, val_data, optimizer, criterion, TEST_ID, rng_seed, neg_ratio, 5000, file_suffix)
     # 4. Save the final predicted model to a file
-    get_network(path_files, TEST_ID, rng_seed, neg_ratio)
+    get_network(path_files, TEST_ID, rng_seed, neg_ratio, file_suffix)
