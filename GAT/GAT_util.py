@@ -1,7 +1,7 @@
 from networkx import *
 import torch
 import torch_geometric.transforms as T
-from torch_geometric.nn import SuperGATConv
+from torch_geometric.nn import GATConv
 from torch_geometric.data import Data
 from torch_geometric.utils import negative_sampling
 from torch_geometric.utils import to_networkx
@@ -42,9 +42,9 @@ def build_graph(path_files, TEST_ID, type):
 class Net(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels):
         super().__init__()
-        self.conv1 = SuperGATConv(in_channels, hidden_channels * 2, heads=2)
+        self.conv1 = GATConv(in_channels, hidden_channels * 2, heads=2)
         self.Linear = torch.nn.Linear(hidden_channels * 4, hidden_channels * 4)
-        self.conv2 = SuperGATConv(hidden_channels * 4, out_channels, heads=2)
+        self.conv2 = GATConv(hidden_channels * 4, out_channels, heads=2)
 
     def encode(self, x, edge_index):
         x1 = self.conv1(x, edge_index).relu()
