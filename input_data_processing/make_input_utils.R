@@ -1,4 +1,5 @@
 library(R6)
+library(edgeR)
 ##########################
 
 # Required functions for make_input.R
@@ -15,7 +16,7 @@ MakeInput <- R6Class("MakeInput",
         initialize = function(TEST_ID = NULL,
                               path_expr = NULL, path_meta = NULL,
                               pseudobulking = T, n_cells_for_selecting = 150, column_name = "label.main",
-                              is_normalized = F, is_scaled = F,
+                              is_processed = F,
                               cells_to_be_removed = NULL,
                               path_genes_of_interest = NULL,
                               path_network = NULL, path_tf_and_reqdgenes = NULL,
@@ -26,12 +27,25 @@ MakeInput <- R6Class("MakeInput",
             self$path_output <- path_output
 
             # read data
-            self$read_expression(path_expr, path_meta, pseudobulking, n_cells_for_selecting, column_name, is_normalized, is_scaled, cells_to_be_removed, path_genes_of_interest)
+            self$read_expression(path_expr, path_meta, pseudobulking, n_cells_for_selecting, column_name, is_processed, cells_to_be_removed, path_genes_of_interest)
             self$read_tfs()
             # self$read_required_genes()
             self$read_network(path_network)
         },
-        read_expression = function(path_expr, path_meta, pseudobulking, n_cells_for_selecting, column_name, is_normalized, is_scaled, cells_to_be_removed, path_genes_of_interest) {
+        make_pseudobulk = function(data, n_cells_for_selecting) {
+            n_rep <- trunc(ncol(data) / n_cells_for_selecting)
+            if (n_rep >= 2) {
+                selected_ids <- sample(colnames(data), n_rep * n_cells_for_selecting)
+                random_group <- sample(rep(1:n_rep, rep(n_cells_for_selecting, n_rep)))
+                df_pseudo_counts <- t(apply(data[, selected_ids], 1, tapply, random_group, sum))
+            } else {
+                selected_ids <- rep(sample(colnames(data)), length.out = n_cells_for_selecting)
+                df_pseudo_counts <- matrix(apply(data[, selected_ids], 1, sum), ncol = 1)
+            }
+            df_pseudo <- matrix(apply(df_pseudo_counts, 1, median), ncol = 1)
+            return(df_pseudo)
+        },
+        read_expression = function(path_expr, path_meta, pseudobulking, n_cells_for_selecting, column_name, is_processed, cells_to_be_removed, path_genes_of_interest) {
             df_expr_full <- read.delim(path_expr, row.names = 1)
             df_expr_full$id <- NULL
 
@@ -40,16 +54,17 @@ MakeInput <- R6Class("MakeInput",
 
             if (pseudobulking) {
                 message("Construct pseudobulk data")
-                list_selected <- sapply(celltypes, function(celltype) {
-                    message(celltype)
+                df_combined <- NULL
+                for (celltype in celltypes) {
                     selected_idx <- df_metadata[[column_name]] == celltype
-                    selected_ids <- rep(sample(colnames(df_expr_full)[selected_idx]),
-                        length.out = n_cells_for_selecting
-                    )
-                    apply(df_expr_full[, selected_ids], 1, mean)
-                }, simplify = F)
-                df_combined <- as.data.frame(list_selected)
-            } else if (n_cells_for_selecting!=1) {
+                    df_pseudo <- self$make_pseudobulk(df_expr_full[, selected_idx], n_cells_for_selecting)
+                    colnames(df_pseudo) <- celltype
+                    df_combined <- cbind(df_combined, df_pseudo)
+                }
+                rownames(df_combined) <- rownames(df_expr_full)
+            } else if (n_cells_for_selecting == 1) {
+                df_combined <- df_expr_full
+            } else {
                 list_selected <- sapply(celltypes, function(celltype) {
                     message(celltype)
                     selected_idx <- df_metadata[[column_name]] == celltype
@@ -59,25 +74,18 @@ MakeInput <- R6Class("MakeInput",
                     df_expr_full[, selected_ids]
                 }, simplify = F)
                 df_combined <- as.data.frame(list_selected)
-            }else{
-                df_combined <- df_expr_full
             }
-            # Filter genes
-            # df_combined_subset <- df_combined[apply(df_combined != 0, 1, sum) != 0, ]
-            df_combined_subset = df_combined
-            # Normalize
-            if (!is_normalized) {
-                df_norm <- t(t(df_combined_subset) / apply(df_combined_subset, 2, sum))
+            if (!is_processed) {
+                dge <- DGEList(counts = df_combined)
+                dge <- calcNormFactors(dge, method='TMM')
+                df_lognorm <- cpm(dge, normalized.lib.sizes= T, log =T)
+                # Filter genes
+                df_norm <- df_lognorm[apply(df_lognorm, 1, sd) > .8, ]
+                df_scaled <- t(apply(df_norm, 1, scale))
+                colnames(df_scaled) <- colnames(df_combined)
             } else {
-                df_norm <- df_combined_subset
+                df_scaled <- df_combined
             }
-            # Scaling
-            if (!is_scaled) {
-                df_scaled <- t(apply(log2(df_norm + 1), 1, scale))
-            } else {
-                df_scaled <- df_norm
-            }
-            colnames(df_scaled) <- colnames(df_combined_subset)
             self$df_expr <- df_scaled
             if (!is.null(path_genes_of_interest) && file.exists(path_genes_of_interest)) {
                 self$genes_of_interest <- read.table(path_genes_of_interest)[, 1]
@@ -109,8 +117,10 @@ MakeInput <- R6Class("MakeInput",
         write_files = function(type) {
             message("N genes of interest: ", length(self$genes_of_interest))
             genes_expressed <- intersect(rownames(self$df_expr), self$genes_of_interest)
+            # genes_in_network <- unique(c(self$df_net$TF, self$df_net$target))
+            # candidates <- intersect(genes_in_network, genes_expressed)
             df_net_filt <- subset(self$df_net, TF %in% intersect(self$tfs_all, genes_expressed) & target %in% genes_expressed)
-            selected_tfs <- unique(df_net_filt$TF)
+            # selected_tfs <- unique(df_net_filt$TF)
             selected_genes <- unique(c(df_net_filt$TF, df_net_filt$target))
 
             df_embeddings <- self$df_expr[selected_genes, ]
@@ -121,9 +131,15 @@ MakeInput <- R6Class("MakeInput",
                 # index_all_genes <- seq_len(nrow(df_embeddings)) - 1
                 # df_all_possible_edges_idx <- expand.grid(index_all_tfs, index_all_genes)
 
+                df_net_string = read.delim(file.path("/home/seongwonhwang/Desktop/projects/mogrify/Statistical\ Consulting/", "BIC/data/networks_anonymize.txt"))
+                df_net_string <- df_net_string[!duplicated(df_net_string), ]
+                colnames(df_net_string) <- c("TF", "target")
+                df_net_string <- subset(df_net_string, TF %in% intersect(self$tfs_all, rownames(df_embeddings)) & target %in% rownames(df_embeddings))
+
+
                 df_all_possible_edges_idx <- data.frame(
-                    TF = match(df_net_filt$TF, rownames(df_embeddings)) - 1,
-                    target = match(df_net_filt$target, rownames(df_embeddings)) - 1
+                    TF = match(df_net_string$TF, rownames(df_embeddings)) - 1,
+                    target = match(df_net_string$target, rownames(df_embeddings)) - 1
                 )
 
                 write.table(df_all_possible_edges_idx,
@@ -134,7 +150,7 @@ MakeInput <- R6Class("MakeInput",
                     quote = F, row.names = F, col.names = F, sep = "\t"
                 )
                 # df_all_possible_edges <- expand.grid(selected_tfs, selected_genes)
-                df_all_possible_edges <- df_net_filt
+                df_all_possible_edges <- df_net_string
                 write.table(df_all_possible_edges,
                     paste0(
                         self$path_output, "/",

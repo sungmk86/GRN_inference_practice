@@ -2,9 +2,9 @@ import os
 os.chdir('/home/seongwonhwang/Desktop/projects/git/GRN_inference_practice/')
 from GAT.GAT_util import *
 
-TEST_ID = 'TEST3'
+TEST_ID = 'TEST5'
 neg_ratio = 3.0
-file_suffix = '_suplinear'
+file_suffix = '_linear'
 
 for rng_seed in (111, 123, 1234):
     # Set a fixed seed for reproducibility

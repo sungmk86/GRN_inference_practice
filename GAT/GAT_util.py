@@ -67,6 +67,7 @@ def train_link_predictor(
     fname_output = 'GAT/data/'+TEST_ID+'_rng'+str(rng_seed)+'_neg'+str(neg_ratio) + file_suffix
     # Define the early stopping criteria
     best_val_auc = 0.
+    validation_auc_list = []
     patience = 500.
     num_epoche_no_improve = 0
     with open( fname_output + '.log', 'w') as f:
@@ -101,11 +102,16 @@ def train_link_predictor(
         optimizer.step()
         # evaluate the validation AUC
         val_auc = eval_link_predictor(model, val_data)
+        # Store the valudation AUC and check if it has increased
+        validation_auc_list.append(val_auc)
+        last_10_auc_mean = sum(validation_auc_list[-10:]) / 10.0
+        if epoch >10:
+            validation_auc_list.pop(0)
         # Check if the validation auc has improved
-        if val_auc > best_val_auc:
+        if last_10_auc_mean > best_val_auc:
             # update the best validation AUC score
             if epoch >= 1000:
-                best_val_auc = val_auc
+                best_val_auc = last_10_auc_mean
             # reset the number of epochs without improvement
             num_epoche_no_improve = 0
             # save the best model as a pickle file

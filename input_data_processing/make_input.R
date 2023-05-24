@@ -8,9 +8,10 @@ MI <- MakeInput$new(
   path_expr = file.path(dir_data, "Bayesian_DE/iterative_test/iterative_test/TF_experiment_expression_matrix.gz"),
   path_meta = file.path(dir_data, "Bayesian_DE/iterative_test/iterative_test/TF_experiment_metadata.gz"),
   pseudobulking = T, n_cells_for_selecting = 150, column_name = "label.main",
-  is_normalized = F, is_scaled = F,
+  is_processed = F,
   cells_to_be_removed = c("iPSC", "K562"),
-  path_network = file.path(dir_data, "BIC/data/networks_anonymize.txt"),
+  # path_network = file.path(dir_data, "BIC/data/networks_anonymize.txt"),
+  path_network = 'data/jaspar_anonymized.txt',
   path_tf_and_reqdgenes = "/home/seongwonhwang/Desktop/projects/GRN_in_general/PyG/data/Anonymized_tables/Anonymized_tables/",
   path_output = "data/"
 )

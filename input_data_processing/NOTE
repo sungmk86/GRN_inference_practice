@@ -20,12 +20,11 @@ TEST3
  - Used TFs and all genes for both training and predicting
  * Use the same blacklist as eBIC - selected_genes <- intersect of genes in expression and network
  - pseudobulking 150 cells
+ - for robustness test using 3 random seed(111, 123, 1234)
 TEST4
- - Fixed a bug in node_labels
- - Filter genes
- - Normalize
- - Scaling
- - Used TFs and all genes for both training and predicting
- - Use the same blacklist as eBIC - selected_genes <- intersect of genes in expression and network
- - randomly selected 150 single cells
- - early stopping
+ - Used JASPAR instead of STRING for training and predicting
+ - Refactored scripts
+ - Used TMM method for normalization
+ - Made a change to the method for pseudobulking. Previously, the method randomly selected 150 cells out of a total of N cells, resulting in the exclusion of the remaining N-150 cells. Now we generate multiple replicates and use the median valude from the replicates.
+TEST5
+ - Used JASPAR for training and STRING for predicting
