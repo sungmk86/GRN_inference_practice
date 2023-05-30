@@ -33,7 +33,7 @@ for rng_seed in (111, 123, 1234):
             optimizer = torch.optim.Adam(params=model.parameters(), lr=0.002)
             criterion = torch.nn.BCEWithLogitsLoss()
             model = train_link_predictor(
-                model, train_data, val_data, optimizer, criterion, TEST_ID, rng_seed, neg_ratio, n_epochs=5000)
+                model, train_data, val_data, test_data, optimizer, criterion, TEST_ID, rng_seed, neg_ratio)
             # 4. Save the final predicted model to a file
             get_network(path_files, TEST_ID, rng_seed, neg_ratio)
             # > png('NodeAb1_control_Node_prediction_score_distribution.png', width=500, height=500, res=150)
