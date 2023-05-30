@@ -31,11 +31,10 @@ def load_edge_index(path_files, TEST_ID, type):
 
 def build_graph(path_files, TEST_ID, type):
     edge_index = load_edge_index(path_files, TEST_ID, type)
-    graph = Data(edge_index=edge_index)
-
+    graph = Data(edge_index=edge_index.cuda())
     embeddings = load_embedding(path_files, TEST_ID, type)
     graph.num_nodes = len(embeddings)
-    graph.x = torch.from_numpy(embeddings).type(torch.float32)
+    graph.x = torch.from_numpy(embeddings).type(torch.float32).cuda()
     return (graph)
 
 
@@ -140,7 +139,7 @@ def get_network(path_files, TEST_ID, rng_seed, neg_ratio, file_suffix=''):
     dt_all_possible_edge_index = pd.read_csv(path_files+'/'+TEST_ID+'_edge_index_for_predicting.txt',
                                              header=None, sep='\t')
     torch_all_possible_edge_index = torch.from_numpy(
-        np.array(dt_all_possible_edge_index).T)
+        np.array(dt_all_possible_edge_index).T).cuda()
     with open(fname_output + '_model.pkl', 'rb') as f:
         best_model = pickle.load(f)
     best_model.eval()
