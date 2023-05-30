@@ -127,9 +127,6 @@ def train_link_predictor(
             with open(fname_output + '.log', 'a') as f:
                 log_text = f"Epoch: {epoch:03d}, Train Loss: {loss:.3f}, Best Val AUC: {best_val_auc:.3f}, Val AUC: {val_auc:.3f}\n"
                 f.write(log_text)
-        # if epoch > 5000 and num_epoche_no_improve > patience:
-        #     # stop training if the maximum number of epochs without improvement is reached
-        #     break
     return model
 
 
@@ -154,7 +151,6 @@ def get_network(path_files, TEST_ID, rng_seed, neg_ratio, file_suffix=''):
     dt_all_possible_edge_labels.to_csv(
         fname_output + '_prediction_score.txt', sep='\t', header=None, index=False)
 
-
 def plot_histogram(tensor_data):
     # plot_histogram(prediction_scores)
     data = tensor_data.numpy()  # Convert tensor to NumPy array
@@ -164,7 +160,6 @@ def plot_histogram(tensor_data):
     plt.ylabel('Frequency')
     plt.title('Histogram')
     plt.show()
-
 
 def convert_to_networkx(graph, n_sample=None):
     g = to_networkx(graph, node_attrs=["x"])

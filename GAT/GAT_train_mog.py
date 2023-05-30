@@ -1,8 +1,8 @@
 import os
-os.chdir('/home/seongwonhwang/Desktop/projects/git/GRN_inference_practice/')
+# os.chdir('/home/seongwonhwang/Desktop/projects/git/GRN_inference_practice/')
 from GAT.GAT_util import *
 
-TEST_ID = 'TEST5'
+TEST_ID = 'TEST6'
 neg_ratio = 3.0
 file_suffix = '_linear'
 
@@ -12,7 +12,7 @@ for rng_seed in (111, 123, 1234):
     torch.manual_seed(rng_seed)
     np.random.seed(rng_seed)
     # 1. Build graphs for training and predicting
-    path_files = '/home/seongwonhwang/Desktop/projects/git/GRN_inference_practice/input_data_processing/data'
+    path_files = 'input_data_processing/data'
     graph_for_training = build_graph(path_files, TEST_ID, 'training')
     # 2. Split the graph into training and validation
     split = T.RandomLinkSplit(
@@ -24,8 +24,7 @@ for rng_seed in (111, 123, 1234):
     )
     train_data, val_data, test_data = split(graph_for_training)
     # 3. Build a model and train
-    device = torch.device(
-        'cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = Net(train_data.x.shape[1], 128, 64).to(device)
     optimizer = torch.optim.Adam(params=model.parameters(), lr=0.002)
     criterion = torch.nn.BCEWithLogitsLoss()
