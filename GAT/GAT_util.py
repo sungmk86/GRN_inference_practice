@@ -61,7 +61,7 @@ class Net(torch.nn.Module):
 
 
 def train_link_predictor(
-    model, train_data, val_data, optimizer, criterion, TEST_ID, rng_seed=1234, neg_ratio=1.0, n_epochs=100, file_suffix=''
+    model, train_data, val_data, test_data, optimizer, criterion, TEST_ID, rng_seed=1234, neg_ratio=1.0, file_suffix=''
 ):
     fname_output = 'GAT/data/'+TEST_ID+'_rng'+str(rng_seed)+'_neg'+str(neg_ratio) + file_suffix
     # Define the early stopping criteria
@@ -71,6 +71,7 @@ def train_link_predictor(
     num_epoche_no_improve = 0
     with open( fname_output + '.log', 'w') as f:
         f.write('Start training..\n')
+    n_epochs = 5000
     for epoch in range(1, n_epochs + 1):
         # set the model to training mode
         model.train()
@@ -101,6 +102,7 @@ def train_link_predictor(
         optimizer.step()
         # evaluate the validation AUC
         val_auc = eval_link_predictor(model, val_data)
+        test_auc = eval_link_predictor(model, test_data)
         # Store the valudation AUC and check if it has increased
         validation_auc_list.append(val_auc)
         last_10_auc_mean = sum(validation_auc_list[-10:]) / 10.0
@@ -118,14 +120,14 @@ def train_link_predictor(
                 pickle.dump(model, f)
             with open(fname_output + '.log', 'a') as f:
                 f.write('..model saved\n')
-                log_text = f"Epoch: {epoch:03d}, Train Loss: {loss:.3f}, Best Val AUC: {best_val_auc:.3f}, Val AUC: {val_auc:.3f}\n"
+                log_text = f"Epoch: {epoch:03d}, Train Loss: {loss:.3f}, Best Val AUC: {best_val_auc:.3f}, Val AUC: {val_auc:.3f}, Test AUC: {test_auc:.3f}\n"
                 f.write(log_text)
         else:
             # increment the number of epochs without improvement
             num_epoche_no_improve += 1
         if epoch % 10 == 0:
             with open(fname_output + '.log', 'a') as f:
-                log_text = f"Epoch: {epoch:03d}, Train Loss: {loss:.3f}, Best Val AUC: {best_val_auc:.3f}, Val AUC: {val_auc:.3f}\n"
+                log_text = f"Epoch: {epoch:03d}, Train Loss: {loss:.3f}, Best Val AUC: {best_val_auc:.3f}, Val AUC: {val_auc:.3f}, Test AUC: {test_auc:.3f}\n"
                 f.write(log_text)
     return model
 
