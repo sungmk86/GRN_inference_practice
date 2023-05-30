@@ -76,12 +76,13 @@ MakeInput <- R6Class("MakeInput",
                 df_combined <- as.data.frame(list_selected)
             }
             if (!is_processed) {
-                dge <- DGEList(counts = df_combined)
-                dge <- calcNormFactors(dge, method='TMM')
-                df_lognorm <- cpm(dge, normalized.lib.sizes= T, log =T)
+                expressed <- apply(df_combined > 2, 1, sum) > 0
+                dge <- DGEList(counts = df_combined[expressed, ])
+                dge <- calcNormFactors(dge, method = "TMM")
+                df_lognorm <- cpm(dge, normalized.lib.sizes = T, log = T)
                 # Filter genes
-                df_norm <- df_lognorm[apply(df_lognorm, 1, sd) > .8, ]
-                df_scaled <- t(apply(df_norm, 1, scale))
+                # df_norm <- df_lognorm[apply(df_lognorm, 1, sd) > 0.8, ]
+                df_scaled <- t(apply(df_lognorm, 1, scale))
                 colnames(df_scaled) <- colnames(df_combined)
             } else {
                 df_scaled <- df_combined
