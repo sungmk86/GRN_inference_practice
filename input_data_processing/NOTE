@@ -28,3 +28,7 @@ TEST4
  - Made a change to the method for pseudobulking. Previously, the method randomly selected 150 cells out of a total of N cells, resulting in the exclusion of the remaining N-150 cells. Now we generate multiple replicates and use the median valude from the replicates.
 TEST5
  - Used JASPAR for training and STRING for predicting
+TEST6
+ - Used STRING edges overlapped with JASPAR
+TEST7
+ - TEST3 with Refactored scripts

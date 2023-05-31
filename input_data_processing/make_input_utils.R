@@ -1,5 +1,7 @@
 library(R6)
 library(edgeR)
+library(Seurat)
+library(scran)
 ##########################
 
 # Required functions for make_input.R
@@ -12,6 +14,7 @@ MakeInput <- R6Class("MakeInput",
         df_net = NULL,
         tfs_all = NULL,
         genes_of_interest = NULL,
+        meta = NULL,
         # required_genes = NULL,
         initialize = function(TEST_ID = NULL,
                               path_expr = NULL, path_meta = NULL,
@@ -42,32 +45,69 @@ MakeInput <- R6Class("MakeInput",
                 selected_ids <- rep(sample(colnames(data)), length.out = n_cells_for_selecting)
                 df_pseudo_counts <- matrix(apply(data[, selected_ids], 1, sum), ncol = 1)
             }
-            df_pseudo <- matrix(apply(df_pseudo_counts, 1, median), ncol = 1)
-            return(df_pseudo)
+            return(df_pseudo_counts)
+        },
+        get_deg = function(df_expr_full, column_name, cells_to_be_removed) {
+            # data <- apply(df_combined_rep, 2, round, 0)
+            # dds <- DESeqDataSetFromMatrix(
+            #     countData = data,
+            #     colData = data.frame(condition = factor(sub("_rep[0-9]*$", "", colnames(data)))),
+            #     design = ~condition
+            # )
+            # dds <- DESeq(dds, test = "LRT", reduced = ~1)
+            # res <- results(dds)
+            # res <- res[!is.na(res$padj), ]
+
+            expt <- CreateSeuratObject(counts = df_expr_full)
+            sce <- as.SingleCellExperiment(expt)
+            set.seed(1234)
+            sce_clust <- scran::quickCluster(sce, min.size = 50)
+            # Normalize data
+            sce <- scran::computeSumFactors(sce, cluster = sce_clust, min.mean = 0.1)
+            sce <- scuttle::logNormCounts(sce)
+
+            filt_cells <- !self$meta[[column_name]] %in% cells_to_be_removed
+            sce_filt <- sce[, filt_cells]
+            out_wilcox <- scran::findMarkers(sce_filt,
+                assay.type = "logcounts", groups = self$meta[[column_name]][filt_cells], test.type = "wilcox",
+                pval.type = "all"
+            )
+            out_binom <- scran::findMarkers(sce_filt,
+                assay.type = "logcounts", groups = self$meta[[column_name]][filt_cells], test.type = "binom",
+                pval.type = "all"
+            )
+            diff_genes <- unique(
+                c(
+                    unlist(sapply(names(out_wilcox), function(x) rownames(subset(out_wilcox[[x]], FDR < .05)))),
+                    unlist(sapply(names(out_binom), function(x) rownames(subset(out_binom[[x]], FDR < .05))))
+                )
+            )
+            return(diff_genes)
         },
         read_expression = function(path_expr, path_meta, pseudobulking, n_cells_for_selecting, column_name, is_processed, cells_to_be_removed, path_genes_of_interest) {
             df_expr_full <- read.delim(path_expr, row.names = 1)
             df_expr_full$id <- NULL
-
-            df_metadata <- read.delim(path_meta)
-            celltypes <- setdiff(df_metadata[[column_name]], cells_to_be_removed)
+            df_expr_full <- as.matrix(df_expr_full)
+            self$meta <- read.delim(path_meta)
+            celltypes <- setdiff(self$meta[[column_name]], cells_to_be_removed)
 
             if (pseudobulking) {
                 message("Construct pseudobulk data")
-                df_combined <- NULL
+                df_combined_rep <- NULL
                 for (celltype in celltypes) {
-                    selected_idx <- df_metadata[[column_name]] == celltype
+                    selected_idx <- self$meta[[column_name]] == celltype
                     df_pseudo <- self$make_pseudobulk(df_expr_full[, selected_idx], n_cells_for_selecting)
-                    colnames(df_pseudo) <- celltype
-                    df_combined <- cbind(df_combined, df_pseudo)
+                    colnames(df_pseudo) <- paste0(celltype, "_rep", 1:ncol(df_pseudo))
+                    df_combined_rep <- cbind(df_combined_rep, df_pseudo)
                 }
-                rownames(df_combined) <- rownames(df_expr_full)
+                rownames(df_combined_rep) <- rownames(df_expr_full)
+                df_combined <- t(apply(df_combined_rep, 1, tapply, sub("_rep[0-9]*$", "", colnames(df_combined_rep)), median))
             } else if (n_cells_for_selecting == 1) {
                 df_combined <- df_expr_full
             } else {
                 list_selected <- sapply(celltypes, function(celltype) {
                     message(celltype)
-                    selected_idx <- df_metadata[[column_name]] == celltype
+                    selected_idx <- self$meta[[column_name]] == celltype
                     selected_ids <- rep(sample(colnames(df_expr_full)[selected_idx]),
                         length.out = n_cells_for_selecting
                     )
@@ -76,10 +116,11 @@ MakeInput <- R6Class("MakeInput",
                 df_combined <- as.data.frame(list_selected)
             }
             if (!is_processed) {
-                expressed <- apply(df_combined > 2, 1, sum) > 0
-                dge <- DGEList(counts = df_combined[expressed, ])
+                # expressed <- apply(df_combined > 2, 1, sum) > 0
+                diff_genes <- self$get_deg(df_expr_full, column_name, cells_to_be_removed)
+                dge <- DGEList(counts = df_combined[diff_genes, ])
                 dge <- calcNormFactors(dge, method = "TMM")
-                df_lognorm <- cpm(dge, normalized.lib.sizes = T, log = T)
+                df_lognorm <- edgeR::cpm(dge, normalized.lib.sizes = T, log = T)
                 # Filter genes
                 # df_norm <- df_lognorm[apply(df_lognorm, 1, sd) > 0.8, ]
                 df_scaled <- t(apply(df_lognorm, 1, scale))
