@@ -2,17 +2,18 @@ import os
 # os.chdir('/home/seongwonhwang/Desktop/projects/git/GRN_inference_practice/')
 from GAT.GAT_util import *
 
-ID = 'NodeAb6'
+ID = 'NodeAb7'
 neg_ratio = 3.0
 
-for rng_seed in (111, 123, 1234):
+for rng_seed in range(1, 20 + 1):
     # Set a fixed seed for reproducibility
     random.seed(rng_seed)
     torch.manual_seed(rng_seed)
     np.random.seed(rng_seed)
     # TEST_ID = 'NodeAb1_control_Node'
     for status in ('control', 'ablation'):
-        for cell_type in ('Early_endoderm', 'Node', "Mesoderm", "Prospective_neural_plate", "Area_opaca", "Mesodermal_neural", "Non_neural_ectoderm", "Anterior_ingressing_streak", "Germina_crescent"):
+        # for cell_type in ('Early_endoderm', 'Node', "Mesoderm", "Prospective_neural_plate", "Area_opaca", "Mesodermal_neural", "Non_neural_ectoderm", "Anterior_ingressing_streak", "Germina_crescent"):
+        for cell_type in ('Early_endoderm', 'Node'):
             TEST_ID = ID+'_'+status+'_'+cell_type
             # 1. Build graphs for training and predicting
             path_files = '../Node_ablation_practice/GRN/data'
@@ -20,7 +21,7 @@ for rng_seed in (111, 123, 1234):
             # 2. Split the graph into training and validation
             split = T.RandomLinkSplit(
                 num_val=0.05,
-                num_test=0.,
+                num_test=0.05,
                 is_undirected=False,
                 add_negative_train_samples=True,
                 neg_sampling_ratio=neg_ratio,
