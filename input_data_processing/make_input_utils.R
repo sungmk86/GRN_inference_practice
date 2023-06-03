@@ -160,26 +160,26 @@ MakeInput <- R6Class("MakeInput",
             message("N genes of interest: ", length(self$genes_of_interest))
             genes_expressed <- intersect(rownames(self$df_expr), self$genes_of_interest)
             df_net_filt <- subset(self$df_net, TF %in% intersect(self$tfs_all, genes_expressed) & target %in% genes_expressed)
-            # selected_tfs <- unique(df_net_filt$TF)
+            selected_tfs <- unique(df_net_filt$TF)
             selected_genes <- unique(c(df_net_filt$TF, df_net_filt$target))
 
             df_embeddings <- self$df_expr[selected_genes, ]
             if (type == "predicting") {
                 ###############################################
                 # write all possible edges from TFs to target
-                # index_all_tfs <- match(selected_tfs, selected_genes) - 1
-                # index_all_genes <- seq_len(nrow(df_embeddings)) - 1
-                # df_all_possible_edges_idx <- expand.grid(index_all_tfs, index_all_genes)
+                index_all_tfs <- match(selected_tfs, rownames(df_embeddings)) - 1
+                index_all_genes <- seq_len(nrow(df_embeddings)) - 1
+                df_all_possible_edges_idx <- expand.grid(index_all_tfs, index_all_genes)
 
                 # df_net_string = read.delim(file.path("/home/seongwonhwang/Desktop/projects/mogrify/Statistical\ Consulting/", "BIC/data/networks_anonymize.txt"))
                 # df_net_string <- df_net_string[!duplicated(df_net_string), ]
                 # colnames(df_net_string) <- c("TF", "target")
                 # df_net_string <- subset(df_net_string, TF %in% intersect(self$tfs_all, rownames(df_embeddings)) & target %in% rownames(df_embeddings))
 
-                df_all_possible_edges_idx <- data.frame(
-                    TF = match(df_net_filt$TF, rownames(df_embeddings)) - 1,
-                    target = match(df_net_filt$target, rownames(df_embeddings)) - 1
-                )
+                # df_all_possible_edges_idx <- data.frame(
+                #     TF = match(df_net_filt$TF, rownames(df_embeddings)) - 1,
+                #     target = match(df_net_filt$target, rownames(df_embeddings)) - 1
+                # )
 
                 write.table(df_all_possible_edges_idx,
                     paste0(
@@ -188,8 +188,8 @@ MakeInput <- R6Class("MakeInput",
                     ),
                     quote = F, row.names = F, col.names = F, sep = "\t"
                 )
-                # df_all_possible_edges <- expand.grid(selected_tfs, selected_genes)
-                df_all_possible_edges <- df_net_filt
+                df_all_possible_edges <- expand.grid(selected_tfs, selected_genes)
+                # df_all_possible_edges <- df_net_filt
                 write.table(df_all_possible_edges,
                     paste0(
                         self$path_output, "/",
