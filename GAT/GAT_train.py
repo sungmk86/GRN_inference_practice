@@ -2,10 +2,10 @@ import os
 # os.chdir('/home/seongwonhwang/Desktop/projects/git/GRN_inference_practice/')
 from GAT.GAT_util import *
 
-ID = 'NodeAb7'
+ID = 'NodeAb11'
 neg_ratio = 3.0
 
-for rng_seed in range(1, 20 + 1):
+for rng_seed in range(1, 100 + 1):
     # Set a fixed seed for reproducibility
     random.seed(rng_seed)
     torch.manual_seed(rng_seed)
@@ -13,6 +13,7 @@ for rng_seed in range(1, 20 + 1):
     # TEST_ID = 'NodeAb1_control_Node'
     for status in ('control', 'ablation'):
         # for cell_type in ('Early_endoderm', 'Node', "Mesoderm", "Prospective_neural_plate", "Area_opaca", "Mesodermal_neural", "Non_neural_ectoderm", "Anterior_ingressing_streak", "Germina_crescent"):
+        # for cell_type in ['AllCells']:
         for cell_type in ('Early_endoderm', 'Node'):
             TEST_ID = ID+'_'+status+'_'+cell_type
             # 1. Build graphs for training and predicting
