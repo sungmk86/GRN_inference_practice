@@ -4,7 +4,7 @@ source("make_input_utils.R")
 
 dir_data <- "/home/seongwonhwang/Desktop/projects/mogrify/Statistical\ Consulting/"
 MI <- MakeInput$new(
-  TEST_ID = "TEST11",
+  TEST_ID = "TEST8",
   path_expr = file.path(dir_data, "Bayesian_DE/iterative_test/iterative_test/TF_experiment_expression_matrix"),
   path_meta = file.path(dir_data, "Bayesian_DE/iterative_test/iterative_test/TF_experiment_metadata.gz"),
   pseudobulking = T, n_cells_for_selecting = 150, column_name = "label.main",

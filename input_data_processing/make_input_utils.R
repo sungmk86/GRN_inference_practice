@@ -116,9 +116,9 @@ MakeInput <- R6Class("MakeInput",
                 df_combined <- as.data.frame(list_selected)
             }
             if (!is_processed) {
-                # expressed <- apply(df_combined > 2, 1, sum) > 0
-                diff_genes <- self$get_deg(df_expr_full, column_name, cells_to_be_removed)
-                dge <- DGEList(counts = df_combined[diff_genes, ])
+                expressed <- apply(df_combined > 2, 1, sum) > 0
+                # diff_genes <- self$get_deg(df_expr_full, column_name, cells_to_be_removed)
+                dge <- DGEList(counts = df_combined[expressed, ])
                 dge <- calcNormFactors(dge, method = "TMM")
                 df_lognorm <- edgeR::cpm(dge, normalized.lib.sizes = T, log = T)
                 # Filter genes
