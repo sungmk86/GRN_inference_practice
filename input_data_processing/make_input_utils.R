@@ -20,6 +20,7 @@ MakeInput <- R6Class("MakeInput",
                               path_expr = NULL, path_meta = NULL,
                               pseudobulking = T, n_cells_for_selecting = 150, column_name = "label.main",
                               is_processed = F,
+                              use_deg = F,
                               cells_to_be_removed = NULL,
                               path_genes_of_interest = NULL,
                               path_network = NULL, path_tf_and_reqdgenes = NULL,
@@ -30,7 +31,7 @@ MakeInput <- R6Class("MakeInput",
             self$path_output <- path_output
 
             # read data
-            self$read_expression(path_expr, path_meta, pseudobulking, n_cells_for_selecting, column_name, is_processed, cells_to_be_removed, path_genes_of_interest)
+            self$read_expression(path_expr, path_meta, pseudobulking, n_cells_for_selecting, column_name, is_processed, use_deg, cells_to_be_removed, path_genes_of_interest)
             self$read_tfs()
             # self$read_required_genes()
             self$read_network(path_network)
@@ -84,7 +85,7 @@ MakeInput <- R6Class("MakeInput",
             )
             return(diff_genes)
         },
-        read_expression = function(path_expr, path_meta, pseudobulking, n_cells_for_selecting, column_name, is_processed, cells_to_be_removed, path_genes_of_interest) {
+        read_expression = function(path_expr, path_meta, pseudobulking, n_cells_for_selecting, column_name, is_processed, use_deg, cells_to_be_removed, path_genes_of_interest) {
             df_expr_full <- read.delim(path_expr, row.names = 1)
             df_expr_full$id <- NULL
             df_expr_full <- as.matrix(df_expr_full)
@@ -116,9 +117,13 @@ MakeInput <- R6Class("MakeInput",
                 df_combined <- as.data.frame(list_selected)
             }
             if (!is_processed) {
-                # expressed <- apply(df_combined > 2, 1, sum) > 0
-                diff_genes <- self$get_deg(df_expr_full, column_name, cells_to_be_removed)
-                dge <- DGEList(counts = df_combined[diff_genes, ])
+                if (use_deg) {
+                    genes_selected <- self$get_deg(df_expr_full, column_name, cells_to_be_removed)
+                } else {
+                    # Lenient filtering
+                    genes_selected <- apply(df_combined > 2, 1, sum) > 0
+                }
+                dge <- DGEList(counts = df_combined[genes_selected, ])
                 dge <- calcNormFactors(dge, method = "TMM")
                 df_lognorm <- edgeR::cpm(dge, normalized.lib.sizes = T, log = T)
                 # Filter genes
@@ -156,30 +161,34 @@ MakeInput <- R6Class("MakeInput",
             colnames(df_net) <- c("TF", "target")
             self$df_net <- df_net
         },
-        write_files = function(type) {
+        write_files = function(type, use_all_possible_edges_for_prediction = F) {
             message("N genes of interest: ", length(self$genes_of_interest))
             genes_expressed <- intersect(rownames(self$df_expr), self$genes_of_interest)
             df_net_filt <- subset(self$df_net, TF %in% intersect(self$tfs_all, genes_expressed) & target %in% genes_expressed)
-            selected_tfs <- unique(df_net_filt$TF)
             selected_genes <- unique(c(df_net_filt$TF, df_net_filt$target))
 
             df_embeddings <- self$df_expr[selected_genes, ]
             if (type == "predicting") {
-                ###############################################
-                # write all possible edges from TFs to target
-                index_all_tfs <- match(selected_tfs, rownames(df_embeddings)) - 1
-                index_all_genes <- seq_len(nrow(df_embeddings)) - 1
-                # df_all_possible_edges_idx <- expand.grid(index_all_tfs, index_all_genes)
-
                 # df_net_string = read.delim(file.path("/home/seongwonhwang/Desktop/projects/mogrify/Statistical\ Consulting/", "BIC/data/networks_anonymize.txt"))
                 # df_net_string <- df_net_string[!duplicated(df_net_string), ]
                 # colnames(df_net_string) <- c("TF", "target")
                 # df_net_string <- subset(df_net_string, TF %in% intersect(self$tfs_all, rownames(df_embeddings)) & target %in% rownames(df_embeddings))
 
-                df_all_possible_edges_idx <- data.frame(
-                    TF = match(df_net_filt$TF, rownames(df_embeddings)) - 1,
-                    target = match(df_net_filt$target, rownames(df_embeddings)) - 1
-                )
+                if (use_all_possible_edges_for_prediction) {
+                    ###############################################
+                    # write all possible edges from TFs to target
+                    selected_tfs <- unique(df_net_filt$TF)
+                    index_all_tfs <- match(selected_tfs, rownames(df_embeddings)) - 1
+                    index_all_genes <- seq_len(nrow(df_embeddings)) - 1
+                    df_all_possible_edges_idx <- expand.grid(index_all_tfs, index_all_genes)
+                    df_all_possible_edges <- expand.grid(selected_tfs, selected_genes)
+                } else {
+                    df_all_possible_edges_idx <- data.frame(
+                        TF = match(df_net_filt$TF, rownames(df_embeddings)) - 1,
+                        target = match(df_net_filt$target, rownames(df_embeddings)) - 1
+                    )
+                    df_all_possible_edges <- df_net_filt
+                }
 
                 write.table(df_all_possible_edges_idx,
                     paste0(
@@ -188,8 +197,7 @@ MakeInput <- R6Class("MakeInput",
                     ),
                     quote = F, row.names = F, col.names = F, sep = "\t"
                 )
-                # df_all_possible_edges <- expand.grid(selected_tfs, selected_genes)
-                df_all_possible_edges <- df_net_filt
+
                 write.table(df_all_possible_edges,
                     paste0(
                         self$path_output, "/",
