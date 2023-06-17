@@ -159,7 +159,7 @@ MakeInput <- R6Class("MakeInput",
             df_net <- read.delim(path_network)
             df_net <- df_net[!duplicated(df_net), ]
             colnames(df_net) <- c("TF", "target")
-            self$df_net <- df_net
+            self$df_net <- df_net[, c("TF", "target")]
         },
         write_files = function(type, use_all_possible_edges_for_prediction = F) {
             message("N genes of interest: ", length(self$genes_of_interest))

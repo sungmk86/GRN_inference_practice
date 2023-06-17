@@ -38,7 +38,3 @@ for rng_seed in range(1, 100 + 1):
                 model, train_data, val_data, test_data, optimizer, criterion, TEST_ID, rng_seed, neg_ratio)
             # 4. Save the final predicted model to a file
             get_network(path_files, TEST_ID, rng_seed, neg_ratio)
-            # > png('NodeAb1_control_Node_prediction_score_distribution.png', width=500, height=500, res=150)
-            # > df = read.table('NodeAb1_control_Node_prediction_score.txt')
-            # > hist(df[,3],breaks=100, xlab='score', main='Score distribution')
-            # > dev.off()

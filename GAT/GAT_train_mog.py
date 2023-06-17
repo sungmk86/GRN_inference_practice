@@ -6,7 +6,7 @@ TEST_ID = 'TEST13'
 neg_ratio = 3.0
 file_suffix = '_linear'
 
-for rng_seed in (111, 123, 1234):
+for rng_seed in range(1, 50 + 1):
     # Set a fixed seed for reproducibility
     random.seed(rng_seed)
     torch.manual_seed(rng_seed)
