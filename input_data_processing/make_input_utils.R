@@ -2,6 +2,7 @@ library(R6)
 library(edgeR)
 library(Seurat)
 library(scran)
+library(DESeq2)
 ##########################
 
 # Required functions for make_input.R
@@ -20,7 +21,7 @@ MakeInput <- R6Class("MakeInput",
                               path_expr = NULL, path_meta = NULL,
                               pseudobulking = T, n_cells_for_selecting = 150, column_name = "label.main",
                               is_processed = F,
-                              use_deg = F,
+                              use_deg = F, is_singlecell = T,
                               cells_to_be_removed = NULL,
                               path_genes_of_interest = NULL,
                               path_network = NULL, path_tf_and_reqdgenes = NULL,
@@ -31,7 +32,7 @@ MakeInput <- R6Class("MakeInput",
             self$path_output <- path_output
 
             # read data
-            self$read_expression(path_expr, path_meta, pseudobulking, n_cells_for_selecting, column_name, is_processed, use_deg, cells_to_be_removed, path_genes_of_interest)
+            self$read_expression(path_expr, path_meta, pseudobulking, n_cells_for_selecting, column_name, is_processed, use_deg, is_singlecell, cells_to_be_removed, path_genes_of_interest)
             self$read_tfs()
             # self$read_required_genes()
             self$read_network(path_network)
@@ -48,44 +49,47 @@ MakeInput <- R6Class("MakeInput",
             }
             return(df_pseudo_counts)
         },
-        get_deg = function(df_expr_full, column_name, cells_to_be_removed) {
-            # data <- apply(df_combined_rep, 2, round, 0)
-            # dds <- DESeqDataSetFromMatrix(
-            #     countData = data,
-            #     colData = data.frame(condition = factor(sub("_rep[0-9]*$", "", colnames(data)))),
-            #     design = ~condition
-            # )
-            # dds <- DESeq(dds, test = "LRT", reduced = ~1)
-            # res <- results(dds)
-            # res <- res[!is.na(res$padj), ]
+        get_deg = function(df_expr_full, column_name, cells_to_be_removed, is_singlecell) {
+            if (is_singlecell) {
+                expt <- CreateSeuratObject(counts = df_expr_full)
+                sce <- as.SingleCellExperiment(expt)
+                set.seed(1234)
+                sce_clust <- scran::quickCluster(sce, min.size = 50)
+                # Normalize data
+                sce <- scran::computeSumFactors(sce, cluster = sce_clust, min.mean = 0.1)
+                sce <- scuttle::logNormCounts(sce)
 
-            expt <- CreateSeuratObject(counts = df_expr_full)
-            sce <- as.SingleCellExperiment(expt)
-            set.seed(1234)
-            sce_clust <- scran::quickCluster(sce, min.size = 50)
-            # Normalize data
-            sce <- scran::computeSumFactors(sce, cluster = sce_clust, min.mean = 0.1)
-            sce <- scuttle::logNormCounts(sce)
-
-            filt_cells <- !self$meta[[column_name]] %in% cells_to_be_removed
-            sce_filt <- sce[, filt_cells]
-            out_wilcox <- scran::findMarkers(sce_filt,
-                assay.type = "logcounts", groups = self$meta[[column_name]][filt_cells], test.type = "wilcox",
-                pval.type = "all"
-            )
-            out_binom <- scran::findMarkers(sce_filt,
-                assay.type = "logcounts", groups = self$meta[[column_name]][filt_cells], test.type = "binom",
-                pval.type = "all"
-            )
-            diff_genes <- unique(
-                c(
-                    unlist(sapply(names(out_wilcox), function(x) rownames(subset(out_wilcox[[x]], FDR < .05)))),
-                    unlist(sapply(names(out_binom), function(x) rownames(subset(out_binom[[x]], FDR < .05))))
+                filt_cells <- !self$meta[[column_name]] %in% cells_to_be_removed
+                sce_filt <- sce[, filt_cells]
+                out_wilcox <- scran::findMarkers(sce_filt,
+                    assay.type = "logcounts", groups = self$meta[[column_name]][filt_cells], test.type = "wilcox",
+                    pval.type = "all"
                 )
-            )
+                out_binom <- scran::findMarkers(sce_filt,
+                    assay.type = "logcounts", groups = self$meta[[column_name]][filt_cells], test.type = "binom",
+                    pval.type = "all"
+                )
+                diff_genes <- unique(
+                    c(
+                        unlist(sapply(names(out_wilcox), function(x) rownames(subset(out_wilcox[[x]], FDR < .05)))),
+                        unlist(sapply(names(out_binom), function(x) rownames(subset(out_binom[[x]], FDR < .05))))
+                    )
+                )
+            } else {
+                data <- apply(df_expr_full, 2, round, 0)
+                dds <- DESeqDataSetFromMatrix(
+                    countData = data,
+                    colData = self$meta,
+                    design = ~label.main
+                )
+                dds <- DESeq(dds, test = "LRT", reduced = ~1)
+                res <- results(dds)
+                res <- res[!is.na(res$padj), ]
+                diff_genes <- rownames(subset(res, padj < 1e-6))
+            }
             return(diff_genes)
         },
-        read_expression = function(path_expr, path_meta, pseudobulking, n_cells_for_selecting, column_name, is_processed, use_deg, cells_to_be_removed, path_genes_of_interest) {
+        read_expression = function(path_expr, path_meta, pseudobulking, n_cells_for_selecting, column_name, is_processed, use_deg, is_singlecell, cells_to_be_removed, path_genes_of_interest) {
             df_expr_full <- read.delim(path_expr, row.names = 1)
             df_expr_full$id <- NULL
             df_expr_full <- as.matrix(df_expr_full)
@@ -118,7 +122,7 @@ MakeInput <- R6Class("MakeInput",
             }
             if (!is_processed) {
                 if (use_deg) {
-                    genes_selected <- self$get_deg(df_expr_full, column_name, cells_to_be_removed)
+                    genes_selected <- self$get_deg(df_expr_full, column_name, cells_to_be_removed, is_singlecell)
                 } else {
                     # Lenient filtering
                     genes_selected <- apply(df_combined > 2, 1, sum) > 0
@@ -164,7 +168,8 @@ MakeInput <- R6Class("MakeInput",
         write_files = function(type, use_all_possible_edges_for_prediction = F) {
             message("N genes of interest: ", length(self$genes_of_interest))
             genes_expressed <- intersect(rownames(self$df_expr), self$genes_of_interest)
-            df_net_filt <- subset(self$df_net, TF %in% intersect(self$tfs_all, genes_expressed) & target %in% genes_expressed)
+            # df_net_filt <- subset(self$df_net, TF %in% intersect(self$tfs_all, genes_expressed) & target %in% genes_expressed)
+            df_net_filt <- subset(self$df_net, TF %in% genes_expressed & target %in% genes_expressed)
             selected_genes <- unique(c(df_net_filt$TF, df_net_filt$target))
 
             df_embeddings <- self$df_expr[selected_genes, ]

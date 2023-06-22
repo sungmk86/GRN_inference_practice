@@ -32,3 +32,5 @@ TEST6
  - Used STRING edges overlapped with JASPAR
 TEST7
  - TEST3 with Refactored scripts
+TEST14
+ - /home/seongwonhwang/Desktop/projects/git/GRN_inference_practice/input_data_processing/data/bulk_anonymize
