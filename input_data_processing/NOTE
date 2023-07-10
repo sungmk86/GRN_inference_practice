@@ -34,3 +34,11 @@ TEST7
  - TEST3 with Refactored scripts
 TEST14
  - /home/seongwonhwang/Desktop/projects/git/GRN_inference_practice/input_data_processing/data/bulk_anonymize
+TEST15
+ - dermal.fibroblast_iPSC
+TEST15
+ - dermal.fibroblast_iPSC
+ - Used all TFs and genes for predicting
+ - v2 - use all possible edges for prediction
+TEST16
+ - dermal.fibroblast_myoblast
