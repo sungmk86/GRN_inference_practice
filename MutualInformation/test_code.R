@@ -12,7 +12,7 @@ res <- minet(
     dataset = expr,
     disc = "equalwidth", nbins = sqrt(nrow(expr)),
     estimator = "mi.shrink",
-    method = "clr"
+    method = "mrnet"
 )
 
 # The above is a compact way to execute the following sequence of runs:
