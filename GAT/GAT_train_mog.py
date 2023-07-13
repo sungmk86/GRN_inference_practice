@@ -2,7 +2,7 @@ import os
 # os.chdir('/home/seongwonhwang/Desktop/projects/git/GRN_inference_practice/')
 from GAT.GAT_util import *
 
-TEST_ID = 'TEST15v2'
+TEST_ID = 'TEST15v3'
 neg_ratio = 3.0
 file_suffix = '_linear'
 

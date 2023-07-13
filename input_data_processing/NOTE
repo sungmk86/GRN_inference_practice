@@ -40,5 +40,7 @@ TEST15
  - dermal.fibroblast_iPSC
  - Used all TFs and genes for predicting
  - v2 - use all possible edges for prediction
+ - v3 - use GENIE3 network (cutoff - upper quantile 30)
+ - v4 - use GENIE3 network (cutoff - upper quantile 20) + STRING
 TEST16
  - dermal.fibroblast_myoblast
