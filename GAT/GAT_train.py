@@ -1,8 +1,9 @@
 import os
 # os.chdir('/home/seongwonhwang/Desktop/projects/git/GRN_inference_practice/')
+import math
 from GAT.GAT_util import *
 
-ID = 'NodeAb11'
+ID = 'NodeAb13'
 neg_ratio = 3.0
 
 for rng_seed in range(1, 100 + 1):
@@ -11,10 +12,10 @@ for rng_seed in range(1, 100 + 1):
     torch.manual_seed(rng_seed)
     np.random.seed(rng_seed)
     # TEST_ID = 'NodeAb1_control_Node'
-    for status in ('control', 'ablation'):
+    for status in ('ablation', 'control'):
         # for cell_type in ('Early_endoderm', 'Node', "Mesoderm", "Prospective_neural_plate", "Area_opaca", "Mesodermal_neural", "Non_neural_ectoderm", "Anterior_ingressing_streak", "Germina_crescent"):
         # for cell_type in ['AllCells']:
-        for cell_type in ('Early_endoderm', 'Node'):
+        for cell_type in ['Mesoderm']:
             TEST_ID = ID+'_'+status+'_'+cell_type
             # 1. Build graphs for training and predicting
             path_files = '../Node_ablation_practice/GRN/data'
@@ -31,6 +32,8 @@ for rng_seed in range(1, 100 + 1):
             # 3. Build a model and train
             device = torch.device(
                 'cuda' if torch.cuda.is_available() else 'cpu')
+            # n_hidden = train_data.x.shape[1]
+            # model = Net(train_data.x.shape[1], n_hidden, math.floor(n_hidden/2.) ).to(device)
             model = Net(train_data.x.shape[1], 128, 64).to(device)
             optimizer = torch.optim.Adam(params=model.parameters(), lr=0.002)
             criterion = torch.nn.BCEWithLogitsLoss()
