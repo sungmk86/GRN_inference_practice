@@ -3,10 +3,10 @@ import os
 import math
 from GAT.GAT_util import *
 
-ID = 'NodeAb13'
+ID = 'NodeAb12'
 neg_ratio = 3.0
 
-for rng_seed in range(1, 100 + 1):
+for rng_seed in range(1, 50 + 1):
     # Set a fixed seed for reproducibility
     random.seed(rng_seed)
     torch.manual_seed(rng_seed)
@@ -15,7 +15,7 @@ for rng_seed in range(1, 100 + 1):
     for status in ('ablation', 'control'):
         # for cell_type in ('Early_endoderm', 'Node', "Mesoderm", "Prospective_neural_plate", "Area_opaca", "Mesodermal_neural", "Non_neural_ectoderm", "Anterior_ingressing_streak", "Germina_crescent"):
         # for cell_type in ['AllCells']:
-        for cell_type in ['Mesoderm']:
+        for cell_type in ['EctoNodeMeso']:
             TEST_ID = ID+'_'+status+'_'+cell_type
             # 1. Build graphs for training and predicting
             path_files = '../Node_ablation_practice/GRN/data'
